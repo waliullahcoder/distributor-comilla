@@ -1,0 +1,405 @@
+<?php
+
+namespace App\Http\Controllers\Admin;
+
+use App\HelperClass;
+use App\Models\User;
+use App\Models\CoaSetup;
+use App\Models\Investor;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
+use Spatie\Permission\Models\Role;
+use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Hash;
+use App\Http\Controllers\Controller;
+use Illuminate\Support\Facades\File;
+
+class InvestorController extends Controller
+{
+    public $path;
+    public $title;
+    public $create_title;
+    public $edit_title;
+    public $model;
+    public function __construct()
+    {
+        $this->path = 'investor';
+        $this->title = 'investor Setup';
+        $this->create_title = 'Add investor';
+        $this->edit_title = 'Update investor';
+        $this->model = Investor::class;
+    }
+
+    /**
+     * Display a listing of the resource.
+     */
+    public function index()
+    {
+        return HelperClass::resourceDataView($this->model::with(['invests'])->orderBy('id', 'desc'), null, null, $this->path, $this->title, 'invests');
+    }
+
+    /**
+     * Show the form for creating a new resource.
+     */
+    public function create()
+    {
+        $title = $this->create_title;
+        return view("admin.{$this->path}.create", compact('title'));
+    }
+
+    /**
+     * Store a newly created resource in storage.
+     */
+    public function store(Request $request)
+    {
+        $request->validate([
+            'name' => 'required',
+            'image' => 'image',
+            'phone' => 'required|unique:users,phone',
+            'email' => 'nullable|email|unique:users,email',
+        ]);
+
+        DB::transaction(function () use ($request) {
+            $user = User::create([
+                'company_id' => Auth::user()->company_id ?? 1,
+                'role' => 3,
+                'name' => $request->name,
+                'email' => $request->email,
+                'phone' => $request->phone,
+                'user_name' => $request->phone,
+                'image' => isset($request->image) ? HelperClass::saveImage($request->image, 500, 'media/investors/') : NULL,
+                'password' => Hash::make($request->phone),
+                'created_by' => Auth::user()->id,
+            ]);
+
+            $file = $request->document;
+            if (isset($file)) {
+                $fileName = $file->getClientOriginalName();
+                $fileName = pathinfo($fileName, PATHINFO_FILENAME);
+                $fileExtension = $file->getClientOriginalExtension();
+                $fileFullName = $fileName . '_' . time() . '.' . $fileExtension;
+                $create_path = public_path('investor-document');
+                if (!File::isDirectory($create_path)) {
+                    File::makeDirectory($create_path, 0777, true, true);
+                }
+                $file->move($create_path, $fileFullName);
+                $document = 'investor-document/' . $fileFullName;
+            }
+
+            $parent = CoaSetup::findOrFail(132);
+            $prefix = $parent->head_code;
+            $maxCode = CoaSetup::where('parent_id', $parent->id)->max('head_code');
+            if ($maxCode) {
+                $next = str_pad((int) substr($maxCode, strlen($prefix)) + 1, 2, '0', STR_PAD_LEFT);
+                $headCode = $prefix . $next;
+            } else {
+                $headCode = $prefix . '01';
+            }
+            $account = CoaSetup::create([
+                'company_id' => Auth::user()->company_id ?? 1,
+                'parent_id'   => $parent->id,
+                'head_code'   => $headCode,
+                'head_name'   => $request->name,
+                'transaction' => true,
+                'general'     => false,
+                'head_type'   => $parent->head_type,
+                'status'      => true,
+                'updateable'     => false,
+                'created_by'  => Auth::id(),
+            ]);
+
+            $parent = CoaSetup::findOrFail(143);
+            $prefix = $parent->head_code;
+            $maxCode = CoaSetup::where('parent_id', $parent->id)->max('head_code');
+            if ($maxCode) {
+                $next = str_pad((int) substr($maxCode, strlen($prefix)) + 1, 2, '0', STR_PAD_LEFT);
+                $headCode = $prefix . $next;
+            } else {
+                $headCode = $prefix . '01';
+            }
+
+            $profit_account = CoaSetup::create([
+                'company_id' => Auth::user()->company_id ?? 1,
+                'parent_id'   => $parent->id,
+                'head_code'   => $headCode,
+                'head_name'   => $request->name . ' - Profit',
+                'transaction' => true,
+                'general'     => false,
+                'head_type'   => $parent->head_type,
+                'status'      => true,
+                'updateable'     => false,
+                'created_by'  => Auth::id(),
+            ]);
+
+            $this->model::create([
+                'company_id' => Auth::user()->company_id ?? 1,
+                'name' => $request->name,
+                'email' => $request->email,
+                'phone' => $request->phone,
+                'address' => $request->address,
+                'nid' => $request->nid,
+                'bkash' => $request->bkash,
+                'rocket' => $request->rocket,
+                'nagad' => $request->nagad,
+                'bank' => $request->bank,
+                'branch' => $request->branch,
+                'account_name' => $request->account_name,
+                'account_no' => $request->account_no,
+                'user_id' => $user->id,
+                'coa_setup_id' => $account->id,
+                'profit_head' => $profit_account->id,
+                'image' => isset($request->image) ? HelperClass::saveImage($request->image, 500, 'media/investors/') : NULL,
+                'document' => @$document,
+                'created_by' => Auth::user()->id,
+            ]);
+
+            $role = Role::findByName('Investor');
+            $user->assignRole($role);
+        });
+
+        return redirect()->route("admin.{$this->path}.index")->withSuccessMessage('Created Successfully!');
+    }
+
+    /**
+     * Display the specified resource.
+     */
+    public function show(string $id)
+    {
+        //
+    }
+
+    /**
+     * Show the form for editing the specified resource.
+     */
+    public function edit(string $id)
+    {
+        if (request()->ajax() && request()->has('status')) {
+            $data = $this->model::findOrFail($id);
+            $user = User::find($data->user_id);
+            $user->update(['status' => !$user->status]);
+            $data->update(['status' => !$data->status]);
+            return response()->json(['status' => 'success']);
+        }
+        return HelperClass::resourceDataEdit($this->model, $id, $this->path, $this->edit_title);
+    }
+
+    /**
+     * Update the specified resource in storage.
+     */
+    public function update(Request $request, string $id)
+    {
+        $data = $this->model::findOrFail($id);
+        $request->validate([
+            'name' => 'required',
+            'image' => 'image',
+            'phone' => 'required|unique:users,phone,' . $data->user_id,
+        ]);
+
+        if (!is_null($request->email)) {
+            $request->validate([
+                'email' => 'email|unique:users,email,' . $data->user_id,
+            ]);
+        }
+
+        DB::transaction(function () use ($request, $id, $data) {
+            $user = User::findOrFail($data->user_id);
+            $user->update([
+                'role' => 3,
+                'name' => $request->name,
+                'email' => $request->email,
+                'phone' => $request->phone,
+                'user_name' => $request->phone,
+                'image' => isset($request->image) ? HelperClass::saveImage($request->image, 500, 'media/investors/', $user->image) : $user->image,
+                'updated_by' => Auth::user()->id,
+            ]);
+
+            $file = $request->document;
+            if (isset($file)) {
+                $fileName = $file->getClientOriginalName();
+                $fileName = pathinfo($fileName, PATHINFO_FILENAME);
+                $fileExtension = $file->getClientOriginalExtension();
+                $fileFullName = $fileName . '_' . time() . '.' . $fileExtension;
+                $create_path = public_path('investor-document');
+                $file->move($create_path, $fileFullName);
+                $document = 'investor-document/' . $fileFullName;
+                if (file_exists($data->document)) {
+                    unlink($data->document);
+                }
+            }
+
+            $account = CoaSetup::find($data->coa_setup_id);
+            if ($account) {
+                $account->update([
+                    'head_name' => $request->name,
+                    'updateable'     => false,
+                    'updated_by' => Auth::id()
+                ]);
+            } else {
+                $parent = CoaSetup::findOrFail(132);
+                $prefix = $parent->head_code;
+                $maxCode = CoaSetup::where('parent_id', $parent->id)->max('head_code');
+                if ($maxCode) {
+                    $next = str_pad((int) substr($maxCode, strlen($prefix)) + 1, 2, '0', STR_PAD_LEFT);
+                    $headCode = $prefix . $next;
+                } else {
+                    $headCode = $prefix . '01';
+                }
+
+                $account = CoaSetup::create([
+                    'company_id' => Auth::user()->company_id ?? 1,
+                    'parent_id'   => $parent->id,
+                    'head_code'   => $headCode,
+                    'head_name'   => $request->name,
+                    'transaction' => true,
+                    'general'     => false,
+                    'head_type'   => $parent->head_type,
+                    'status'      => true,
+                    'updateable'     => false,
+                    'created_by'  => Auth::id(),
+                ]);
+            }
+
+            $profit_account = CoaSetup::find($data->profit_head);
+            if ($profit_account) {
+                $profit_account->update([
+                    'head_name' => $request->name . ' - Profit',
+                    'updateable'     => false,
+                    'updated_by' => Auth::id()
+                ]);
+            } else {
+                $parent = CoaSetup::findOrFail(143);
+                $prefix = $parent->head_code;
+                $maxCode = CoaSetup::where('parent_id', $parent->id)->max('head_code');
+                if ($maxCode) {
+                    $next = str_pad((int) substr($maxCode, strlen($prefix)) + 1, 2, '0', STR_PAD_LEFT);
+                    $headCode = $prefix . $next;
+                } else {
+                    $headCode = $prefix . '01';
+                }
+
+                $profit_account = CoaSetup::create([
+                    'company_id' => Auth::user()->company_id ?? 1,
+                    'parent_id'   => $parent->id,
+                    'head_code'   => $headCode,
+                    'head_name'   => $request->name . ' - Profit',
+                    'transaction' => true,
+                    'general'     => false,
+                    'head_type'   => $parent->head_type,
+                    'status'      => true,
+                    'updateable'     => false,
+                    'created_by'  => Auth::id(),
+                ]);
+            }
+
+            $data->update([
+                'name' => $request->name,
+                'email' => $request->email,
+                'phone' => $request->phone,
+                'address' => $request->address,
+                'nid' => $request->nid,
+                'bkash' => $request->bkash,
+                'rocket' => $request->rocket,
+                'nagad' => $request->nagad,
+                'bank' => $request->bank,
+                'branch' => $request->branch,
+                'account_name' => $request->account_name,
+                'account_no' => $request->account_no,
+                'coa_setup_id' => $account->id,
+                'profit_head' => $profit_account->id,
+                'image' => isset($request->image) ? HelperClass::saveImage($request->image, 500, 'media/investors/', $data->image) : $data->image,
+                'document' => @$document ?? $data->document,
+                'updated_by' => Auth::user()->id,
+            ]);
+        });
+
+        return redirect()->route("admin.{$this->path}.index")->withSuccessMessage('Updated Successfully!');
+    }
+
+    /**
+     * Remove the specified resource from storage.
+     */
+    public function destroy(string $id)
+    {
+        // Recovery Deleted Data
+        if (request()->has('recovery') && request('recovery') == 'true') {
+            try {
+                DB::transaction(function () use ($id) {
+                    $data = $this->model::onlyTrashed()->findOrFail($id);
+                    $coa = CoaSetup::onlyTrashed()->find($data->coa_setup_id);
+                    if ($coa) {
+                        $coa->restore();
+                    }
+                    $profitCoa = CoaSetup::onlyTrashed()->find($data->profit_head);
+                    if ($profitCoa) {
+                        $profitCoa->restore();
+                    }
+                    $user = User::onlyTrashed()->findOrFail($data->user_id);
+                    $user->restore();
+                    $data->restore();
+                });
+                return response()->json(['status' => 'success', 'message' => 'Successfully Recovered!']);
+            } catch (\Exception $e) {
+                return response()->json(['status' => 'error', 'message' => $e->getMessage()]);
+            }
+        }
+
+        // Delete Single Item Permanent
+        if (request()->has('parmanent') && request('parmanent') == 'true') {
+            try {
+                DB::transaction(function () use ($id) {
+                    $data = $this->model::onlyTrashed()->findOrFail($id);
+                    if (file_exists($data->image)) {
+                        unlink($data->image);
+                    }
+                    if (file_exists($data->document)) {
+                        unlink($data->document);
+                    }
+                    $coa = CoaSetup::onlyTrashed()->find($data->coa_setup_id);
+                    if ($coa) {
+                        $coa->forceDelete();
+                    }
+                    $profitCoa = CoaSetup::onlyTrashed()->find($data->profit_head);
+                    if ($profitCoa) {
+                        $profitCoa->forceDelete();
+                    }
+                    $user = User::onlyTrashed()->findOrFail($data->user_id);
+                    if (file_exists($user->image)) {
+                        unlink($user->image);
+                    }
+                    $user->forceDelete();
+                    $data->forceDelete();
+                });
+                return response()->json(['status' => 'success', 'message' => 'Permanently Deleted!']);
+            } catch (\Exception $e) {
+                return response()->json(['status' => 'error', 'message' => $e->getMessage()]);
+            }
+        }
+
+        // Delete Single Item
+        try {
+            DB::transaction(function () use ($id) {
+                $data = $this->model::findOrFail($id);
+                $coa = CoaSetup::find($data->coa_setup_id);
+                if ($coa) {
+                    $coa->update(['deleted_by' => Auth::id()]);
+                    $coa->delete();
+                }
+                $profitCoa = CoaSetup::find($data->profit_head);
+                if ($profitCoa) {
+                    $profitCoa->update(['deleted_by' => Auth::id()]);
+                    $profitCoa->delete();
+                }
+                $user = User::find($data->user_id);
+                if ($user) {
+                    $user->update(['deleted_by' => Auth::id()]);
+                    $user->delete();
+                }
+                $data->update(['deleted_by' => Auth::id()]);
+                $data->delete();
+            });
+            return response()->json(['status' => 'success', 'message' => 'Successfully Deleted!']);
+        } catch (\Exception $e) {
+            return response()->json(['status' => 'error', 'message' => $e->getMessage()]);
+        }
+    }
+}
