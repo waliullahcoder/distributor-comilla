@@ -320,8 +320,8 @@ class LiftingController extends Controller
         }
         $data = Lifting::findOrFail($id);
         $report_title = 'Lifting Voucher';
-        // return view('admin.lifting.print', compact('title', 'informations', 'report_title', 'data'));
-        $pdf = Pdf::loadView('admin.lifting.print', compact('title', 'informations', 'report_title', 'data'));
+         return view('admin.lifting.print', compact('title', 'informations', 'report_title', 'data'));
+        //$pdf = Pdf::loadView('admin.lifting.print', compact('title', 'informations', 'report_title', 'data'));
         // $pdf->setPaper('A4', 'landscape');
         return $pdf->stream('product_lifting_chalan_' . date('d_m_Y_H_i_s') . '.pdf');
     }

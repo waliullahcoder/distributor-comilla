@@ -1,4 +1,4 @@
-@extends('layouts.admin.print_app')
+@extends('layouts.admin.invoice_app')
 @push('css')
     <style>
         .info-table thead {
@@ -106,7 +106,27 @@
         <b>In words : </b> {{ \App\HelperClass::convertNumber($data->total_cost) }} taka.
     </div>
     <div>
-        <div class="signature-area">
+        <div style="margin-top:100px;">
+            <table class="table mb-0 border-0">
+                <tbody>
+                    <tr>
+                        <td style="border: none;" width="33%">
+                            <div class="signature-item">
+                                <i class="staff">{{ auth()->user()->name }}</i>
+                                <span>Prepared By</span>
+                            </div>
+                        </td>
+                        
+                        <td style="border: none;" width="33%">
+                            <div class="signature-item">
+                                <span>Receive By</span>
+                            </div>
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+        <!-- <div class="signature-area">
             <div class="signature-item">
                 <span>Receive By</span>
             </div>
@@ -114,7 +134,7 @@
                 <i class="staff">{{ @$data->staff->name }}</i>
                 <span>Prepare By</span>
             </div>
-        </div>
+        </div> -->
     </div>
     <div style="padding-top: 50px;">Print Date & Time : {{ date('d-m-Y h:i:s A') }}</div>
 @endsection

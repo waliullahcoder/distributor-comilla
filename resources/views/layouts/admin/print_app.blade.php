@@ -21,18 +21,27 @@
         body {
             font-family: "Noto Serif Bengali", serif;
             font-optical-sizing: auto;
-            font-weight: <weight>;
+            font-weight: 400;
             font-style: normal;
-            font-variation-settings:
-                "wdth" 100;
+            font-variation-settings: "wdth" 100;
         }
-
-        .heading-area {
+        body,
+        table,
+        td,
+        th,
+        span,
+        div,
+        p,
+        b {
+            font-family: "Noto Serif Bengali", serif !important;
+            font-weight: 400;
+        }
+        /* .heading-area {
             font-family: 'PT Serif', serif;
             font-style: italic;
             text-align: center;
             line-height: 1;
-        }
+        } */
 
         .heading {
             margin-bottom: 10px;

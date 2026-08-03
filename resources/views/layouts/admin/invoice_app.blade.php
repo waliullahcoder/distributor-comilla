@@ -53,6 +53,9 @@
             font-size: 13px;
             font-family: 'PT Serif', serif;
         }
+        .headbg{
+            background:#9ce3eb !important;
+        }
 
         @media screen,
         print {
@@ -147,7 +150,7 @@
             <tr>
                 <td>
                     <div class="logo-area">
-                        <img src="data:image/jpeg;base64,{{ base64_encode(file_get_contents(!is_null($logo) && file_exists($logo) ? public_path($logo) : public_path('backend/images/logo/logo.jpg'))) }}"
+                        <img src="{{ $setting->logo ? asset($setting->logo) : public_path('backend/images/logo/logo.jpg') }}"
                             height="80" alt="Logo" />
                     </div>
                 </td>
@@ -161,7 +164,7 @@
                 </td>
             </tr>
         </table>
-        <h4 class="report-title mb-2" style="background-color: #ddd;">{{ $report_title }}</h4>
+        <h4 class="report-title mb-2 headbg">{{ $report_title }}</h4>
     </header>
     @yield('content')
     <script type="text/javascript">
