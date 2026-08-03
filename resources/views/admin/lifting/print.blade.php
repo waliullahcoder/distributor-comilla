@@ -61,24 +61,35 @@
                 <th>Product Name (Code)</th>
                 <th class="text-right">Rate</th>
                 <th class="text-center">Quantity</th>
+                <th class="text-center">Delivery</th>
                 <th class="text-right">Amount</th>
             </tr>
         </thead>
         <tbody>
             @php
                 $total_qty = 0;
+                $total_delivery=0;
             @endphp
             @foreach ($data->products as $row)
                 <tr>
                     <td class="text-center"><b>{{ $loop->iteration }}</b></td>
                     <td>{{ $row->product->category->name }}</td>
-                    <td>{{ $row->product->name }} ({{ $row->product->code }})</td>
+                    <td>{{ $row->product->name }} ({{ $row->product->code }}) <br>
+                       
+                     @if($row->product->type==1)
+                      <b>Trade Offer:</b> {{$row->product->trade_offer}} <br>
+                      <b>Do Ratio:</b> {{$row->product->do_ratio}} <br>
+                     @endif
+
+                    </td>
                     <td class="text-right">{{ number_format($row->lifting_price, 2) }}</td>
                     <td class="text-center">{{ $row->qty . '(' . $row->product->attribute->name . ')' }} </td>
+                     <td class="text-center">{{ $row->delivery . '(' . $row->product->attribute->name . ')' }} </td>
                     <td class="text-right">{{ number_format($row->qty * $row->lifting_price, 2, '.', ',') }}</td>
                 </tr>
                 @php
                     $total_qty += $row->qty;
+                    $total_delivery += $row->delivery;
                 @endphp
             @endforeach
         </tbody>
@@ -86,6 +97,7 @@
             <tr>
                 <td class="text-right" colspan="4"><b>Total Summary</b></td>
                 <td class="text-center" colspan="1"><b>{{ number_format($total_qty, 2, '.', ',') }}</b></td>
+                 <td class="text-center" colspan="1"><b>{{ number_format($total_delivery, 2, '.', ',') }}</b></td>
                 <td class="text-right" colspan="1"><b>{{ number_format($data->total_cost, 2, '.', ',') }}</b></td>
             </tr>
         </tfoot>

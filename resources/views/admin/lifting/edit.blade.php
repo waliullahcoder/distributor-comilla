@@ -103,6 +103,7 @@
                         <th>Code</th>
                         <th width="150" class="text-center">Rate</th>
                         <th width="150" class="text-center">Quantity</th>
+                        <th width="150" class="text-center">Delivery</th>
                         <th width="150" class="text-center">Amount</th>
                         <th class="text-center" width="50"><i class="far fa-trash-alt"></i></th>
                     </tr>
@@ -125,6 +126,10 @@
                             <td>
                                 <input style="width: 150px;" type="number" name="quantity[{{ $key }}]"
                                     class="text-center qty" step="any" value="{{ $product->qty }}" required>
+                            </td>
+                            <td>
+                                <input style="width: 150px;" type="number" name="delivery[{{ $key }}]"
+                                    class="text-center delivery" step="any" value="{{ $product->delivery }}" required>
                             </td>
                             <td>
                                 <input style="width: 150px;" type="number" step="any"
@@ -271,6 +276,7 @@
                             <td class="px-3">${response.product.code}</td>
                             <td><input style="width: 150px;" class="text-center rate" type="number" name="lifting_price[${existing_key}]" step="any" value="${response.product.price.lifting_price}" required></td>
                             <td><input style="width: 150px;" class="text-center qty" type="number" name="quantity[${existing_key}]" step="any" value="${qty}" required></td>
+                            <td><input style="width: 150px;" class="text-center qty" type="number" name="delivery[${existing_key}]" step="any" value="${delivery}" required></td>
                             <td><input style="width: 150px;" class="text-center amount" type="number" name="amount[${existing_key}]" step="any" value="${qty * response.product.price.lifting_price}" required></td>
                             <td class="text-center"><button type="button" class="btn btn-xs btn-outline-danger remove_item mnw-auto px-2"><i class="far fa-trash-alt"></i></button></td>
                         </tr>`;
@@ -392,6 +398,18 @@
                     $('#coa_setup_id').attr('required', false);
                 }
             });
+        });
+
+        //Delivery input validation
+        $(document).on('input', '.delivery', function () {
+
+            let delivery = parseFloat($(this).val()) || 0;
+            let qty = parseFloat($(this).closest('tr').find('.qty').val()) || 0;
+
+            if (delivery > qty) {
+                alert('Delivery Qty cannot be greater than Quantity.');
+                $(this).val(qty);
+            }
         });
     </script>
 @endpush

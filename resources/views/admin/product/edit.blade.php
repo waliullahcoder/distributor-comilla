@@ -45,6 +45,40 @@
                 </div>
             </div>
         </div>
+        <div class="col-sm-6">
+                <label class="form-label"><b>Type</b></label>
+                <select name="type" id="type" class="form-select" required>
+                    <option value="0" {{ $data->type == 0 ? 'selected' : '' }}>Normal</option>
+                    <option value="1" {{ $data->type == 1 ? 'selected' : '' }}>Trade Offer</option>
+                </select>
+            </div>
+
+            <!-- Trade Offer Fields -->
+            <div id="trade_offer_fields" class="row mt-3"
+                style="{{ $data->type == 1 ? '' : 'display:none;' }}">
+
+                <div class="col-sm-6">
+                    <label class="form-label"><b>Trade Offer</b></label>
+                    <input type="text"
+                        name="trade_offer"
+                        class="form-control"
+                        value="{{ old('trade_offer', $data->trade_offer) }}"
+                        placeholder="Ex. 1 PC. OF G- PLUS TrKKt(MtLK, ELACHt, ORANGE)(292,2e3,294) FREE">
+                </div>
+
+                <div class="col-sm-6">
+                    <label class="form-label"><b>DO Ratio</b></label>
+                    <select name="do_ratio" class="form-select">
+                        @for($i = 4; $i <= 20; $i++)
+                            <option value="{{ $i }} CTN : 1 CTN"
+                                {{ old('do_ratio', $data->do_ratio) == ($i.' CTN : 1 CTN') ? 'selected' : '' }}>
+                                {{ $i }} CTN : 1 CTN
+                            </option>
+                        @endfor
+                    </select>
+                </div>
+
+            </div>
         <div class="col-12" id="vendors_area">
             <label class="form-label" for="vendors"><b>Vendors</b></label>
             <select name="vendor_id[]" id="vendor_id" class="select form-select" data-placeholder="Select Vendor.."
@@ -533,6 +567,26 @@
                     }
                 });
             }
+        });
+
+
+        //Trade offer
+
+        $(document).ready(function () {
+            function toggleTradeOfferFields() {
+                if ($('#type').val() == '1') {
+                    $('#trade_offer_fields').slideDown();
+                } else {
+                    $('#trade_offer_fields').slideUp();
+                }
+            }
+
+            toggleTradeOfferFields();
+
+            $('#type').on('change', function () {
+                toggleTradeOfferFields();
+            });
+
         });
     </script>
 @endpush

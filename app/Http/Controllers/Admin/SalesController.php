@@ -261,7 +261,7 @@ class SalesController extends Controller
             $transfers = DB::table('view_transfers')->where('product_type', $product_type)->where('sku_id', $product_id)->where('host_id', $store_id)->sum('qty');
             $receives = DB::table('view_transfers')->where('product_type', $product_type)->where('sku_id', $product_id)->where('destination_id', $store_id)->sum('qty');
         }
-
+          
         return $liftings + $sales_returns + $receives - $lifting_returns - $sales - $online_sales - $transfers;
     }
 
@@ -637,7 +637,8 @@ class SalesController extends Controller
 
             $store_id = request('store_id');
             $sales = SalesList::where('sales_id', $id)->where('store_id', $store_id)->where('product_id', $product_id)->first();
-            $stock = $this->stock($product_id, $store_id) + @$sales->qty;
+            //$stock = $this->stock($product_id, $store_id) + @$sales->qty;
+            $stock = $this->stock($product_id, $store_id);
             return response()->json(['status' => 'success', 'quantity' => $quantity, 'stock' => $stock]);
         }
 
@@ -651,7 +652,8 @@ class SalesController extends Controller
             }
 
             $sales = SalesList::where('sales_id', $id)->where('store_id', $store_id)->where('product_id', $product_id)->first();
-            $stock = $this->stock($product_id, $store_id) + @$sales->qty;
+            //$stock = $this->stock($product_id, $store_id) + @$sales->qty;
+            $stock = $this->stock($product_id, $store_id);
             if (request('quantity') > $stock) {
                 return response()->json(['status' => 'error', 'data' => 'stock not available please decrease quantity!']);
             } else {
@@ -671,6 +673,7 @@ class SalesController extends Controller
                 $amount = request('quantity') * $price;
                 $unit = $product->attribute->name;
                 $vendor = $product->vendors->pluck('vendor.name');
+               
                 return response()->json(['status' => 'success', 'product' => $product, 'unit' => $unit, 'quantity' => request('quantity'), 'stock' => $stock, 'pre_order_product' => $pre_order_product, 'order_product_id' => $order_product_id, 'price' => $price, 'amount' => $amount, 'vendor' => $vendor]);
             }
         }
@@ -810,6 +813,7 @@ class SalesController extends Controller
                             'order_product_id' => $request->order_product_id[$key],
                             'rate' => $request->rate[$key],
                             'qty' => $request->qty[$key],
+                            'delivery' => $request->delivery[$key],
                             'amount' => $request->amount[$key],
                             'discount' => $discount,
                             'collection' => $request->sales_type == 'cash' ? ($request->amount[$key] - $discount) : 0.00,

@@ -133,6 +133,7 @@
                             <th class="text-nowrap">Product name</th>
                             <th>Rate</th>
                             <th class="text-nowrap">Order Qty</th>
+                            <th class="text-nowrap">Delivery</th>
                             <th>Unit</th>
                             <th>Amount</th>
                             <th class="text-center" width="50"><i class="far fa-trash-alt"></i></th>
@@ -176,6 +177,10 @@
                                 <td>
                                     <input type="number" style="min-width: 100px;" class="form-control qty"
                                         placeholder="Quantity" name="qty[]" step="any" value="{{ $item->qty }}">
+                                </td>
+                                <td>
+                                    <input type="number" style="min-width: 100px;" class="form-control delivery"
+                                        placeholder="Delivery Qty" name="delivery[]" step="any" value="{{ $item->delivery }}">
                                 </td>
                                 <td>
                                     <input type="text" style="min-width: 100px;" class="form-control unit"
@@ -664,6 +669,7 @@
                                     <td>${ response.product.name }</td>
                                     <td><input type="number" style="min-width: 100px;" class="form-control rate" placeholder="Rate" name="rate[]" value="${ response.price }"></td>
                                     <td><input type="number" style="min-width: 100px;" class="form-control qty" placeholder="Quantity" step="any" name="qty[]" value="${ response.quantity }"></td>
+                                    <td><input type="number" style="min-width: 100px;" class="form-control qty" placeholder="Delivery Qty" step="any" name="delivery[]" value="${ response.delivery }"></td>
                                     <td><input type="text" style="min-width: 100px;" class="form-control unit" placeholder="Unit" readonly value="${ response.unit }"></td>
                                     <td><input type="number" style="min-width: 100px;" class="form-control amount" placeholder="Amount" name="amount[]" readonly value="${ response.amount }"></td>
                                     <td class="text-center"><button type="button" class="btn btn-xs btn-outline-danger remove_item mnw-auto px-2"><i class="far fa-trash-alt"></i></button></td>
@@ -820,5 +826,19 @@
                 calculate();
             });
         });
+
+        //Delivery input validation
+        $(document).on('input', '.delivery', function () {
+
+            let delivery = parseFloat($(this).val()) || 0;
+            let qty = parseFloat($(this).closest('tr').find('.qty').val()) || 0;
+
+            if (delivery > qty) {
+                alert('Delivery Qty cannot be greater than Quantity.');
+                $(this).val(qty);
+            }
+        });
+
+
     </script>
 @endpush

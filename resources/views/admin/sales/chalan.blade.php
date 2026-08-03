@@ -90,6 +90,7 @@
                 <th>Description of Goods</th>
                 <th>Item Code</th>
                 <th>Quantity</th>
+                <th>Delivery</th>
             </tr>
         </thead>
         <tbody>
@@ -99,7 +100,13 @@
                     <td>@foreach($item->product->vendors as $single)
                                         {{ @$single->vendor->name }},
                                     @endforeach</td>
-                    <td>{{ @$item->product->name }}</td>
+                    <td>{{ @$item->product->name }}
+                        <br>
+                        @if(@$item->product->type==1)
+                        <b>Trade Offer:</b> {{@$item->product->trade_offer}} <br>
+                        <b>Do Ratio:</b> {{@$item->product->do_ratio}} <br>
+                         @endif
+                    </td>
                     <td>{{ @$item->product->code }}</td>
                     {{-- @php
                         $ctn = floor($item->qty / $item->product->ctn_size);
@@ -108,6 +115,7 @@
                     @endphp --}}
                     {{-- <td>{{ $ctn . ' CTN ' . ($extra > 0 ? $extra . ' ' . @$item->product->attribute->name : '') }}</td> --}}
                     <td>{{ $item->qty }} ({{ $item->product->attribute->name }})</td>
+                    <td>{{ $item->delivery }} ({{ $item->product->attribute->name }})</td>
                 </tr>
             @endforeach
         </tbody>

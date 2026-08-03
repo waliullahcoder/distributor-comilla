@@ -309,6 +309,7 @@ class LiftingController extends Controller
      */
     public function show(Request $request, string $id)
     {
+       
         if (Auth::user()->company_id) {
             $company = Company::find(Auth::user()->company_id);
             $title = $company->name;
@@ -451,6 +452,7 @@ class LiftingController extends Controller
                     'net_amount' => $request->amount[$key] - $discount,
                     'expiry_date' => !is_null(@$request->expiry_date[$key]) ? date('Y-m-d', strtotime(@$request->expiry_date[$key])) : null,
                     'qty' => $request->quantity[$key],
+                    'delivery' => $request->delivery[$key],
                     'created_by' => Auth::user()->id,
                 ]);
                 $log_data .= ' ' . $product->name . ' ' . $request->quantity[$key] . ' ' . $product->attribute->name . ' ';
