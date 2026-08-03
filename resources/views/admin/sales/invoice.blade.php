@@ -107,6 +107,7 @@
                     @endif
                     <th width="70">Quantity</th>
                     <th width="70">Delivery</th>
+                    <th width="70">Pending</th>
                     <th width="70">Rate</th>
                     <th width="70" class="text-right">Amount</th>
                 </tr>
@@ -132,6 +133,7 @@
                         @endif
                         <td width="50">{{ @$item->qty }}</td>
                         <td width="50">{{ @$item->delivery }}</td>
+                        <td width="50">{{ @$item->qty-@$item->delivery }}</td>
                         <td width="50">{{ number_format($item->rate, 2, '.', ',') }}</td>
                         <td class="text-right" width="70">{{ number_format($item->rate * $item->qty, 2, '.', ',') }}
                         </td>
@@ -143,7 +145,7 @@
                     <td colspan="{{ $data->product_type == 'Consumer' ? '2' : '3' }}" rowspan="3"><b>In words :</b>
                         {{ \App\HelperClass::convertNumber($data->total_amount - $data->discount) }} Taka
                         Only</td>
-                    <td class="text-right" colspan="4"><b>Total Amount :</b></td>
+                    <td class="text-right" colspan="5"><b>Total Amount :</b></td>
                     <td class="text-right" width="70">{{ number_format($data->total_amount, 2, '.', ',') }}</td>
                 </tr>
                 @if ($data->discount > 0)
@@ -153,7 +155,7 @@
                     </tr>
                 @endif
                 <tr>
-                    <td class="text-right" colspan="4"><b>Net Invoice Amount :</b></td>
+                    <td class="text-right" colspan="5"><b>Net Invoice Amount :</b></td>
                     <td class="text-right" width="70">
                         {{ number_format($data->total_amount - $data->discount, 2, '.', ',') }}</td>
                 </tr>

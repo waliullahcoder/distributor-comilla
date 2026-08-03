@@ -553,18 +553,19 @@
                     });
                     return;
                 }
-                if (quantity == '' || quantity == '0') {
-                    Swal.fire({
-                        width: "22rem",
-                        position: 'top-right',
-                        toast: true,
-                        text: "Please take Quantity",
-                        icon: "error",
-                        showConfirmButton: false,
-                        timer: 1500
-                    });
-                    return;
-                }
+                //Stock validation removed invoice create permitted 0 stock case
+                // if (quantity == '' || quantity == '0') {
+                //     Swal.fire({
+                //         width: "22rem",
+                //         position: 'top-right',
+                //         toast: true,
+                //         text: "Please take Quantity",
+                //         icon: "error",
+                //         showConfirmButton: false,
+                //         timer: 1500
+                //     });
+                //     return;
+                // }
                 if (store_id == '') {
                     Swal.fire({
                         width: "22rem",

@@ -91,6 +91,7 @@
                 <th>Item Code</th>
                 <th>Quantity</th>
                 <th>Delivery</th>
+                <th>Pending</th>
             </tr>
         </thead>
         <tbody>
@@ -108,14 +109,9 @@
                          @endif
                     </td>
                     <td>{{ @$item->product->code }}</td>
-                    {{-- @php
-                        $ctn = floor($item->qty / $item->product->ctn_size);
-                        $ctn_sizes = $ctn * $item->product->ctn_size;
-                        $extra = $item->qty - $ctn_sizes;
-                    @endphp --}}
-                    {{-- <td>{{ $ctn . ' CTN ' . ($extra > 0 ? $extra . ' ' . @$item->product->attribute->name : '') }}</td> --}}
                     <td>{{ $item->qty }} ({{ $item->product->attribute->name }})</td>
                     <td>{{ $item->delivery }} ({{ $item->product->attribute->name }})</td>
+                    <td>{{ ($item->qty-$item->delivery) }} ({{ $item->product->attribute->name }})</td>
                 </tr>
             @endforeach
         </tbody>

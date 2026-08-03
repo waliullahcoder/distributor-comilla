@@ -424,6 +424,7 @@ Route::group(['as' => 'admin.', 'prefix' => 'admin', 'middleware' => ['admin_per
     Route::get('/collection-history', [ReportController::class, 'collectionHistory'])->name('collection-history.index');
     Route::get('/return-history', [ReportController::class, 'returnHistory'])->name('return-history.index');
     Route::get('/client-statement', [ReportController::class, 'clientStatement'])->name('client-statement.index');
+    Route::get('/client-delivery-report', [ReportController::class, 'clientDeliveryReport'])->name('client.delivery_report.index');
     Route::get('/delivery-statement', [ReportController::class, 'deliveryStatement'])->name('delivery-statement.index');
     Route::get('/transfer-log', [ReportController::class, 'transferLog'])->name('transfer-log.index');
     Route::get('/stock-status', [ReportController::class, 'stockStatus'])->name('stock-status.index');

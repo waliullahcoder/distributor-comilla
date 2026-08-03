@@ -17,12 +17,6 @@
                 <option value=""></option>
             </select>
         </div>
-        <div class="col-md-4 col-sm-6">
-            <label for="territory_id" class="form-label"><b>Territory</b></label>
-            <select name="territory_id" id="territory_id" class="form-select select" data-placeholder="Select Territory">
-                <option value=""></option>
-            </select>
-        </div>
         <div class="col-lg-3 col-md-4 col-sm-6">
             <label for="category_id" class="form-label"><b>Client Category</b></label>
             <select name="category_id" id="category_id" class="form-select select"
@@ -63,7 +57,6 @@
         <input type="hidden" name="print" value="true">
         <input type="hidden" name="region_id" class="region_id">
         <input type="hidden" name="area_id" class="area_id">
-        <input type="hidden" name="territory_id" class="territory_id">
         <input type="hidden" name="category_id" class="category_id">
         <input type="hidden" name="staff_id" class="staff_id">
         <input type="hidden" name="client_type" class="client_type">
@@ -88,7 +81,6 @@
             table.on('preXhr.dt', function(e, settings, data) {
                 data.region_id = $('#region_id').val();
                 data.area_id = $('#area_id').val();
-                data.territory_id = $('#territory_id').val();
                 data.category_id = $('#category_id').val();
                 data.staff_id = $('#staff_id').val();
                 data.client_type = $('#client_type').val();
@@ -133,8 +125,6 @@
                     },
                     success: function(response) {
                         if (response.status == 'success') {
-                            $('#territory_id option').remove();
-                            $('#territory_id').append('<option value=""></option>');
                             $.each(response.territories, function(key, value) {
                                 var html =
                                     `<option value="${value.id}">${value.name}</option>`;
@@ -149,7 +139,6 @@
                 e.preventDefault();
                 var region_id = $('#region_id').val();
                 var area_id = $('#area_id').val();
-                var territory_id = $('#territory_id').val();
                 var category_id = $('#category_id').val();
                 var staff_id = $('#staff_id').val();
                 var client_type = $('#client_type').val();
@@ -157,7 +146,6 @@
 
                 $('.region_id').val(region_id);
                 $('.area_id').val(area_id);
-                $('.territory_id').val(territory_id);
                 $('.category_id').val(category_id);
                 $('.staff_id').val(staff_id);
                 $('.client_type').val(client_type);

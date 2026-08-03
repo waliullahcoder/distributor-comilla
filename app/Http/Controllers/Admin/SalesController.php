@@ -322,10 +322,11 @@ class SalesController extends Controller
 
                 foreach ($request->product_id as $key => $product_id) {
                     $stock = $this->stock($product_id, $store_id);
-                    if ($request->qty[$key] > $stock) {
-                        $product = Product::find($product_id);
-                        throw new Exception('stock not available please decrease quantity for ' . $product->name);
-                    } else {
+                    //stock validation removed
+                    // if ($request->qty[$key] > $stock) {
+                    //     $product = Product::find($product_id);
+                    //     throw new Exception('stock not available please decrease quantity for ' . $product->name);
+                    // } else {
                         $order_product = OrderProduct::find($request->order_product_id[$key]);
                         if (!is_null($order_product)) {
                             $order_product->update(['delivered' => 1]);
@@ -345,7 +346,7 @@ class SalesController extends Controller
                             'discount' => $discount,
                             'collection' => $request->sales_type == 'cash' ? ($request->amount[$key] - $discount) : 0.00,
                         ]);
-                    }
+                    //}
                 }
 
                 $client = Client::find($request->client_id);

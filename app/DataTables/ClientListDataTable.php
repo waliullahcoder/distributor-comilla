@@ -20,7 +20,19 @@ class ClientListDataTable extends DataTable
     public function dataTable(QueryBuilder $query): EloquentDataTable
     {
         return (new EloquentDataTable($query))
-            ->addIndexColumn();
+        ->addIndexColumn()
+
+        ->addColumn('region_name', function ($row) {
+            return optional(optional($row->area)->region)->name;
+        })
+
+        ->addColumn('area_name', function ($row) {
+            return optional($row->area)->name;
+        })
+
+        ->addColumn('reference_name', function ($row) {
+            return optional($row->reference)->name;
+        });
     }
 
     /**
@@ -29,10 +41,9 @@ class ClientListDataTable extends DataTable
     public function query(Client $model): QueryBuilder
     {
         // client_category_id
-        $query = $model->with(['reference', 'client_category', 'area', 'territory']);
+        $query = $model->with(['reference', 'client_category', 'area.region']);
         $region_id = request('region_id');
         $area_id = request('area_id');
-        $territory_id = request('territory_id');
         $category_id = request('category_id');
         $staff_id = request('staff_id');
         $client_type = request('client_type');
@@ -44,9 +55,6 @@ class ClientListDataTable extends DataTable
         }
         if (!empty($area_id)) {
             $query->where('area_id', $area_id);
-        }
-        if (!empty($territory_id)) {
-            $query->where('territory_id', $territory_id);
         }
         if (!empty($category_id)) {
             $query->where('client_category_id', $category_id);
@@ -106,21 +114,15 @@ class ClientListDataTable extends DataTable
                 'class'     => 'text-center',
             ]),
             Column::make([
-                'data'      => 'area.region.name',
-                'name'      => 'area.region.name',
-                'title'     => 'Region',
-                'class'     => 'text-nowrap',
+                'data' => 'region_name',
+                'name' => 'area.region.name',
+                'title' => 'Region',
+                'class' => 'text-nowrap',
             ]),
             Column::make([
-                'data'      => 'area.name',
+                'data'      => 'area_name',
                 'name'      => 'area.name',
                 'title'     => 'Area',
-                'class'     => 'text-nowrap',
-            ]),
-            Column::make([
-                'data'      => 'territory.name',
-                'name'      => 'territory.name',
-                'title'     => 'Territory',
                 'class'     => 'text-nowrap',
             ]),
             Column::make([
@@ -148,7 +150,7 @@ class ClientListDataTable extends DataTable
                 'class'     => 'text-nowrap',
             ]),
             Column::make([
-                'data'      => 'reference.name',
+                'data'      => 'reference_name',
                 'name'      => 'reference.name',
                 'title'     => 'Reference',
                 'class'     => 'text-nowrap',

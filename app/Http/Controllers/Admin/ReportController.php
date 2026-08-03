@@ -502,10 +502,7 @@ class ReportController extends Controller
             return response()->json(['status' => 'success', 'areas' => $areas]);
         }
 
-        if ($request->ajax() && $request->has('getTerrigory')) {
-            $territories = Territory::where('area_id', $request->area_id)->where('status', 1)->orderBy('name', 'asc')->get();
-            return response()->json(['status' => 'success', 'territories' => $territories]);
-        }
+       
 
         if ($request->has('print')) {
             if (Auth::user()->company_id) {
@@ -519,7 +516,6 @@ class ReportController extends Controller
             $query = Client::with(['reference', 'client_category', 'area', 'territory']);
             $region_id = $request->region_id;
             $area_id = $request->area_id;
-            $territory_id = $request->territory_id;
             $category_id = $request->category_id;
             $staff_id = $request->staff_id;
             $client_type = $request->client_type;
@@ -932,6 +928,64 @@ class ReportController extends Controller
             $title = 'Return History';
             return $historyDataTable->render('admin.reports.return_history.index', compact('filter_link', 'title', 'regions', 'areas', 'territories', 'clients', 'categories', 'products', 'report_type', 'client_id', 'region_id', 'area_id', 'territory_id', 'category_id', 'product_id', 'start_date', 'end_date'));
         }
+    }
+
+    public function clientDeliveryReport(Request $request)
+    {
+        $title = "Delivery Report";
+        $filter_link = Route('admin.client.delivery_report.index');
+
+        $date_range = explode('to', $request->date_range);
+        $start_date = isset($date_range[0]) ? date('Y-m-d', strtotime(trim($date_range[0]))) : null;
+        $end_date   = isset($date_range[1]) ? date('Y-m-d', strtotime(trim($date_range[1]))) : null;
+
+        $client_id = $request->client_id;
+
+        $clients = Client::where('status', 1)
+            ->orderBy('name', 'asc')
+            ->get();
+
+        $query = DB::table('clients as cl')
+            ->leftJoin('sales_lists as sl', 'cl.id', '=', 'sl.client_id')
+            ->select(
+                'cl.id',
+                'cl.name',
+                DB::raw('MAX(sl.created_at) as sale_date'),
+                DB::raw('SUM(sl.qty) as total_qty'),
+                DB::raw('SUM(sl.delivery) as total_delivery')
+            );
+
+        if (!empty($request->client_id)) {
+            $query->where('cl.id', $request->client_id);
+        }
+
+        if (!empty($start_date) && !empty($end_date)) {
+            $query->whereBetween(DB::raw('DATE(sl.created_at)'), [$start_date, $end_date]);
+        }
+
+        $data = $query
+            ->groupBy('cl.id', 'cl.name')
+            ->orderBy('cl.name')
+            ->get();
+
+        // Grand Total
+        $grand_total_qty = $data->sum('total_qty');
+        $grand_total_delivery = $data->sum('total_delivery');
+
+        return view(
+            'admin.reports.delivery_report.index',
+            compact(
+                'title',
+                'filter_link',
+                'clients',
+                'data',
+                'start_date',
+                'end_date',
+                'client_id',
+                'grand_total_qty',
+                'grand_total_delivery'
+            )
+        );
     }
 
     public function clientStatement(Request $request)

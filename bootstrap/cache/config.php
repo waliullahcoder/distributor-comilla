@@ -478,7 +478,7 @@
   ),
   'debugbar' => 
   array (
-    'enabled' => NULL,
+    'enabled' => false,
     'except' => 
     array (
       0 => 'telescope*',
