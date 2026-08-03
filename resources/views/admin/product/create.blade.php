@@ -41,6 +41,51 @@
                 </div>
             </div>
         </div>
+         <div class="col-6" id="attribute_area">
+            <label class="form-label" for="attribute_id"><b>Measurement Unit <span
+                        class="text-danger">*</span></b></label>
+            <select name="attribute_id" id="attribute_id" class="form-control select" required
+                data-placeholder="Choose Attributes">
+                @foreach ($attributes->where('type', 'Consumer') as $key => $attribute)
+                    <option value="{{ $attribute->id }}">{{ $attribute->name }}</option>
+                @endforeach
+            </select>
+            <div class="pt-3 customer_choice_options" id="customer_choice_options" style="display: none;">
+            </div>
+            <div class="pt-3">
+                <div class="sku_combination" id="sku_combination"></div>
+            </div>
+        </div>
+
+        <div class="col-sm-6">
+            <label class="form-label"><b>Type</b></label>
+            <select name="type" id="type" class="form-select" required>
+                <option value="0">Normal</option>
+                <option value="1">Trade Offer</option>
+            </select>
+        </div>
+
+        <!-- Trade Offer Fields -->
+        <div id="trade_offer_fields" class="row mt-3" style="display:none;">
+
+            <div class="col-sm-6">
+                <label class="form-label"><b>Trade Offer</b></label>
+                <input type="text" name="trade_offer" class="form-control"
+                    placeholder="Ex. 1 PC. OF G- PLUS TrKKt(MtLK, ELACHt, ORANGE)(292,2e3,294) FREE">
+            </div>
+
+            <div class="col-sm-6">
+                <label class="form-label"><b>DO Ratio</b></label>
+                <select name="do_ratio" class="form-select">
+                    @for($i = 4; $i <= 20; $i++)
+                        <option value="{{ $i }} CTN : 1 CTN">
+                            {{ $i }} CTN : 1 CTN
+                        </option>
+                    @endfor
+                </select>
+            </div>
+        </div>
+
         <div class="col-12" id="vendors_area">
             <label class="form-label" for="vendors"><b>Select Vendor <span
                         class="text-danger">*</span></b></label>
@@ -84,22 +129,7 @@
                 </table>
             </div>
         </div>
-        <div class="col-12" id="attribute_area">
-            <label class="form-label" for="attribute_id"><b>Measurement Unit <span
-                        class="text-danger">*</span></b></label>
-            <select name="attribute_id" id="attribute_id" class="form-control select" required
-                data-placeholder="Choose Attributes">
-                <option value=""></option>
-                @foreach ($attributes->where('type', 'Consumer') as $key => $attribute)
-                    <option value="{{ $attribute->id }}">{{ $attribute->name }}</option>
-                @endforeach
-            </select>
-            <div class="pt-3 customer_choice_options" id="customer_choice_options" style="display: none;">
-            </div>
-            <div class="pt-3">
-                <div class="sku_combination" id="sku_combination"></div>
-            </div>
-        </div>
+       
 
         <div class="col-12">
             <label for="short_description" class="form-label"><b>Short Description</b></label>
@@ -388,6 +418,33 @@
                     }
                 });
             }
+        });
+
+        //Trade offer
+        $(document).ready(function () {
+
+            function toggleTradeOfferFields() {
+                if ($('#type').val() == '1') {
+                    $('#trade_offer_fields').slideDown();
+                } else {
+                    $('#trade_offer_fields').slideUp();
+
+                    $('#trade_offer_fields')
+                        .find('input')
+                        .val('');
+
+                    $('#trade_offer_fields')
+                        .find('select')
+                        .prop('selectedIndex', 0);
+                }
+            }
+
+            toggleTradeOfferFields();
+
+            $('#type').on('change', function () {
+                toggleTradeOfferFields();
+            });
+
         });
     </script>
 @endpush

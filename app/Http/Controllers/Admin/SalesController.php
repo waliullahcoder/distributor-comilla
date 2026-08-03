@@ -234,13 +234,23 @@ class SalesController extends Controller
     public static function stock($product_id, $store_id, $product_type = 'Consumer')
     {
         if ($product_type == 'Consumer') {
-            $liftings = DB::table('view_liftings')->where('product_type', $product_type)->where('store_id', $store_id)->where('product_id', $product_id)->sum('qty');
-            $lifting_returns = DB::table('view_lifting_returns')->where('product_type', $product_type)->where('store_id', $store_id)->where('product_id', $product_id)->sum('qty');
-            $sales = DB::table('view_sales')->where('product_type', $product_type)->where('store_id', $store_id)->where('product_id', $product_id)->sum('qty');
-            $sales_returns = DB::table('view_sales_returns')->where('product_type', $product_type)->where('store_id', $store_id)->where('product_id', $product_id)->sum('qty');
-            $online_sales = DB::table('view_online_sales')->where('product_type', $product_type)->whereIn('status', ['On Route', 'Delivered', 'Collected'])->where('store_id', $store_id)->where('product_id', $product_id)->sum('qty');
-            $transfers = DB::table('view_transfers')->where('product_type', $product_type)->where('product_id', $product_id)->where('host_id', $store_id)->sum('qty');
-            $receives = DB::table('view_transfers')->where('product_type', $product_type)->where('product_id', $product_id)->where('destination_id', $store_id)->sum('qty');
+            //VIew
+            // $liftings = DB::table('view_liftings')->where('product_type', $product_type)->where('store_id', $store_id)->where('product_id', $product_id)->sum('qty');
+            // $lifting_returns = DB::table('view_lifting_returns')->where('product_type', $product_type)->where('store_id', $store_id)->where('product_id', $product_id)->sum('qty');
+            // $sales = DB::table('view_sales')->where('product_type', $product_type)->where('store_id', $store_id)->where('product_id', $product_id)->sum('qty');
+            // $sales_returns = DB::table('view_sales_returns')->where('product_type', $product_type)->where('store_id', $store_id)->where('product_id', $product_id)->sum('qty');
+            // $online_sales = DB::table('view_online_sales')->where('product_type', $product_type)->whereIn('status', ['On Route', 'Delivered', 'Collected'])->where('store_id', $store_id)->where('product_id', $product_id)->sum('qty');
+            // $transfers = DB::table('view_transfers')->where('product_type', $product_type)->where('product_id', $product_id)->where('host_id', $store_id)->sum('qty');
+            // $receives = DB::table('view_transfers')->where('product_type', $product_type)->where('product_id', $product_id)->where('destination_id', $store_id)->sum('qty');
+
+            //Table
+            $liftings =DB::table('lifting_products')->where('product_type', $product_type)->where('product_id', $product_id)->sum('qty');
+             $lifting_returns = DB::table('lifting_return_lists')->where('product_type', $product_type)->where('store_id', $store_id)->where('product_id', $product_id)->sum('qty');
+            $sales = DB::table('sales_lists')->where('product_type', $product_type)->where('store_id', $store_id)->where('product_id', $product_id)->sum('qty');
+            $sales_returns = DB::table('sales_return_lists')->where('product_type', $product_type)->where('store_id', $store_id)->where('product_id', $product_id)->sum('qty');
+            $online_sales = DB::table('order_products')->where('product_id', $product_id)->sum('quantity');
+            $transfers = DB::table('transfer_products')->where('product_type', $product_type)->where('product_id', $product_id)->sum('qty');
+            $receives = DB::table('transfer_products')->where('product_type', $product_type)->where('product_id', $product_id)->sum('qty');
         }
         if ($product_type == 'Fashion') {
             $liftings = DB::table('view_liftings')->where('product_type', $product_type)->where('store_id', $store_id)->where('sku_id', $product_id)->sum('qty');

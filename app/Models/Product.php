@@ -11,7 +11,7 @@ class Product extends Model
 {
     use HasFactory, SoftDeletes;
     protected $fillable = [
-        'company_id', 'vendor_id', 'attribute_id', 'product_type', 'category_id', 'brand_id', 'name', 'code', 'slug', 'thumbnail', 'more_images', 'short_description', 'description', 'additional_info', 'meta_title', 'meta_description', 'meta_keyword', 'alert_quantity', 'min_order', 'max_order', 'video', 'video_id', 'ctn_size', 'choice_options',
+        'company_id', 'vendor_id', 'attribute_id', 'product_type', 'type','trade_offer','do_ratio', 'category_id', 'brand_id', 'name', 'code', 'slug', 'thumbnail', 'more_images', 'short_description', 'description', 'additional_info', 'meta_title', 'meta_description', 'meta_keyword', 'alert_quantity', 'min_order', 'max_order', 'video', 'video_id', 'ctn_size', 'choice_options',
         'attributes', 'status', 'on_request', 'show_on_website', 'trending', 'featured', 'top_rated', 'best_selling', 'serial', 'allowed_investor', 'shared_profit', 'created_by', 'updated_by', 'deleted_by'
     ];
 
