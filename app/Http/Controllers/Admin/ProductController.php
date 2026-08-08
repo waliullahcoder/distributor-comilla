@@ -242,7 +242,7 @@ class ProductController extends Controller
         $request->validate(
             [
                 'name' => 'required',
-                'thumbnail' => 'image|required',
+                // 'thumbnail' => 'image|required',
                 'category_id' => 'required',
             ],
             [
