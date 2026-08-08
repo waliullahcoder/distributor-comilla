@@ -195,9 +195,9 @@ class SalesController extends Controller
             }
 
             $stock = $this->stock($product_id, $store_id);
-            if (request('quantity') > $stock) {
-                return response()->json(['status' => 'error', 'data' => 'stock not available please decrease quantity!']);
-            } else {
+            // if (request('quantity') > $stock) {
+            //     return response()->json(['status' => 'error', 'data' => 'stock not available please decrease quantity!']);
+            // } else {
                 if (!is_null(request('product_id'))) {
                     $product = Product::find(request('product_id'));
                     $client_price = ClientPrice::where('client_id', request('client_id'))->where('product_id', request('product_id'))->first();
@@ -215,7 +215,7 @@ class SalesController extends Controller
                 $unit = @$product->attribute->name;
                 $vendor = @$product->vendors->pluck('vendor.name');
                 return response()->json(['status' => 'success', 'product' => $product, 'unit' => $unit, 'quantity' => request('quantity'), 'stock' => $stock, 'pre_order_product' => $pre_order_product, 'order_product_id' => $order_product_id, 'price' => $price, 'amount' => $amount, 'vendor' => $vendor]);
-            }
+           // }
         }
 
         $products = Product::where('product_type', 'Consumer')->where('status', 1)->orderBy('name', 'asc')->get();
@@ -310,6 +310,7 @@ class SalesController extends Controller
                     'company_id' => Auth::user()->company_id ?? 1,
                     'store_id' => $store_id,
                     'client_id' => $request->client_id,
+                    'vendor_id' => $request->vendor_id,
                     'invoice' => $invoice,
                     'date' => date('Y-m-d', strtotime($request->date)),
                     'sales_type' => $request->sales_type,
@@ -333,6 +334,18 @@ class SalesController extends Controller
                         }
 
                         $discount = ($request->discount / $request->total_amount) * $request->amount[$key];
+                        $product = Product::find($product_id);
+                        $tradediscount= 0;
+                        if($product->type==1){
+                            $offerqty=0;
+                            $freeqty=0;
+                            $offer_subtotal=0;
+                            $freeqty= floor($request->qty[$key]/(int)$product->do_ratio) ;
+                            $offerqty = $request->qty[$key]-$freeqty;
+                            $offer_subtotal=$offerqty*$request->rate[$key];
+                           $tradediscount=$freeqty*$request->rate[$key];
+                        }
+                       
                         SalesList::create([
                             'company_id' => Auth::user()->company_id ?? 1,
                             'sales_id' => $sales->id,
@@ -343,7 +356,7 @@ class SalesController extends Controller
                             'rate' => $request->rate[$key],
                             'qty' => $request->qty[$key],
                             'amount' => $request->amount[$key],
-                            'discount' => $discount,
+                            'discount' => $discount+$tradediscount,
                             'collection' => $request->sales_type == 'cash' ? ($request->amount[$key] - $discount) : 0.00,
                         ]);
                     //}
@@ -511,17 +524,20 @@ class SalesController extends Controller
      */
     public function show(string $id)
     {
-        if (Auth::user()->company_id) {
-            $company = Company::find(Auth::user()->company_id);
-            $logo = $company->logo;
-            $title = $company->name;
-            $informations = $company->address . '</br>' . $company->phone . ', ' . $company->email . ', ' . $company->website;
+        
+        $data = Sales::findOrFail($id);
+        if ($data) {
+            $company = $data->vendor->name;
+            $hotline = $data->vendor->phone;
+            $logo = $data->vendor->logo;
+            $title = $data->vendor->name;
+            $informations = $data->vendor->address . '</br>' . $data->vendor->phone . ', ' . $data->vendor->email . ', ' . $data->vendor->contact_person;
         } else {
             $logo = NULL;
+            $hotline = '01xxxxx-xxxxx';
             $title = 'Company Name Goes Here.';
             $informations = 'Company address will goes here </br> Mobile: 0967XXXXXX, Email: youremail@gmail.com, www.website.com';
         }
-        $data = Sales::findOrFail($id);
         $report_title = 'Chalan';
          return view('admin.sales.chalan', compact('title', 'logo', 'informations', 'report_title', 'data'));
         $pdf = Pdf::loadView('admin.sales.chalan', compact('title', 'logo', 'informations', 'report_title', 'data'));
@@ -534,27 +550,28 @@ class SalesController extends Controller
      */
     public function invoice(string $id)
     {
-        if (Auth::user()->company_id) {
-            $company = Company::find(Auth::user()->company_id);
-            $hotline = $company->fax;
-            $logo = $company->logo;
-            $title = $company->name;
-            $informations = $company->address . '</br>' . $company->phone . ', ' . $company->email . ', ' . $company->website;
+        
+        $data = Sales::findOrFail($id);
+        if ($data) {
+            $company = $data->vendor->name;
+            $hotline = $data->vendor->phone;
+            $logo = $data->vendor->logo;
+            $title = $data->vendor->name;
+            $informations = $data->vendor->address . '</br>' . $data->vendor->phone . ', ' . $data->vendor->email . ', ' . $data->vendor->contact_person;
         } else {
             $logo = NULL;
             $hotline = '01xxxxx-xxxxx';
             $title = 'Company Name Goes Here.';
             $informations = 'Company address will goes here </br> Mobile: 0967XXXXXX, Email: youremail@gmail.com, www.website.com';
         }
-        $data = Sales::findOrFail($id);
 
         $total_sale_amount = Sales::whereNotIn('id', [$id])->where('client_id', $data->client_id)->sum('total_amount');
-        $total_discount_amount = Sales::whereNotIn('id', [$id])->where('client_id', $data->client_id)->sum('discount');
+        $total_discount_amount = SalesList::where('sales_id', $id)->where('client_id', $data->client_id)->sum('discount');
         $total_paid_amount = Collection::where('client_id', $data->client_id)->where('payment_no', '!=', $data->invoice)->where('collection_type', '!=', 'adjust')->sum('amount');
         $opening = $total_sale_amount - ($total_discount_amount + $total_paid_amount);
 
         $report_title = 'Invoice';
-         return view('admin.sales.invoice', compact('title', 'logo', 'informations', 'hotline', 'report_title', 'data', 'opening'));
+         return view('admin.sales.invoice', compact('title','total_discount_amount', 'logo', 'informations', 'hotline', 'report_title', 'data', 'opening'));
         // $pdf = Pdf::loadView('admin.sales.invoice', compact('title', 'logo', 'informations', 'hotline', 'report_title', 'data', 'opening'));
         // $pdf->setPaper('A4', 'landscape');
         return $pdf->stream('sales_invoice_' . date('d_m_Y_H_i_s') . '.pdf');
@@ -655,9 +672,9 @@ class SalesController extends Controller
             $sales = SalesList::where('sales_id', $id)->where('store_id', $store_id)->where('product_id', $product_id)->first();
             //$stock = $this->stock($product_id, $store_id) + @$sales->qty;
             $stock = $this->stock($product_id, $store_id);
-            if (request('quantity') > $stock) {
-                return response()->json(['status' => 'error', 'data' => 'stock not available please decrease quantity!']);
-            } else {
+            // if (request('quantity') > $stock) {
+            //     return response()->json(['status' => 'error', 'data' => 'stock not available please decrease quantity!']);
+            // } else {
                 if (!is_null(request('product_id'))) {
                     $product = Product::find(request('product_id'));
                     $client_price = ClientPrice::where('client_id', request('client_id'))->where('product_id', request('product_id'))->first();
@@ -676,7 +693,7 @@ class SalesController extends Controller
                 $vendor = $product->vendors->pluck('vendor.name');
                
                 return response()->json(['status' => 'success', 'product' => $product, 'unit' => $unit, 'quantity' => request('quantity'), 'stock' => $stock, 'pre_order_product' => $pre_order_product, 'order_product_id' => $order_product_id, 'price' => $price, 'amount' => $amount, 'vendor' => $vendor]);
-            }
+           // }
         }
 
         $title = 'Update Sales';
@@ -782,6 +799,7 @@ class SalesController extends Controller
                 $sales->update([
                     'store_id' => $store_id,
                     'client_id' => $request->client_id,
+                    'vendor_id' => $request->vendor_id,
                     'date' => date('Y-m-d', strtotime($request->date)),
                     'sales_type' => $request->sales_type,
                     'total_amount' => $total_amount,
@@ -795,10 +813,10 @@ class SalesController extends Controller
                     $old_sales = SalesList::where('sales_id', $id)->where('store_id', $store_id)->where('product_id', $product_id)->first();
                     $stock = $this->stock($product_id, $store_id) + @$old_sales->qty;
 
-                    if ($request->qty[$key] > $stock) {
-                        $product = Product::find($product_id);
-                        throw new Exception('stock not available please decrease quantity for ' . $product->name);
-                    } else {
+                    // if ($request->qty[$key] > $stock) {
+                    //     $product = Product::find($product_id);
+                    //     throw new Exception('stock not available please decrease quantity for ' . $product->name);
+                    // } else {
                         $order_product = OrderProduct::find($request->order_product_id[$key]);
                         if (!is_null($order_product)) {
                             $order_product->update(['delivered' => 1]);
@@ -819,7 +837,7 @@ class SalesController extends Controller
                             'discount' => $discount,
                             'collection' => $request->sales_type == 'cash' ? ($request->amount[$key] - $discount) : 0.00,
                         ]);
-                    }
+                   // }
                 }
 
                 $client = Client::find($request->client_id);
@@ -953,7 +971,14 @@ class SalesController extends Controller
     {
         // Recovery Deleted Data
         if (request()->has('recovery') && request('recovery') == 'true') {
-            $data = Sales::onlyTrashed()->findOrFail($id);
+           // $data = Sales::onlyTrashed()->findOrFail($id);
+           $data = Sales::find($id);
+            if (!$data) {
+                return response()->json([
+                    'status' => 'error',
+                    'message' => 'Sales record not found or already deleted.'
+                ], 404);
+            }
             $collection = Collection::onlyTrashed()->where('sales_id', $id)->first();
             AccountTransactionAuto::onlyTrashed()->where('voucher_no', $data->invoice)->where('voucher_type', 'Sales')->restore();
             if ($collection) {
@@ -981,7 +1006,13 @@ class SalesController extends Controller
 
         // Delete Single Item Permanent
         if (request()->has('parmanent') && request('parmanent') == 'true') {
-            $data = Sales::onlyTrashed()->findOrFail($id);
+           $data = Sales::find($id);
+            if (!$data) {
+                return response()->json([
+                    'status' => 'error',
+                    'message' => 'Sales record not found or already deleted.'
+                ], 404);
+            }
             $collection = Collection::onlyTrashed()->where('sales_id', $id)->first();
             AccountTransactionAuto::onlyTrashed()->where('voucher_no', $data->invoice)->where('voucher_type', 'Sales')->forceDelete();
             if ($collection) {

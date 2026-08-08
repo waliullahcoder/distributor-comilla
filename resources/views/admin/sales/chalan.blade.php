@@ -105,7 +105,17 @@
                         <br>
                         @if(@$item->product->type==1)
                         <b>Trade Offer:</b> {{@$item->product->trade_offer}} <br>
-                        <b>Do Ratio:</b> {{@$item->product->do_ratio}} <br>
+                         <?php 
+                                  $offerqty=0;
+                                  $freeqty=0;
+                                  $offer_subtotal=0;
+                                  $freeqty= floor(@$item->qty/(int)$item->product->do_ratio) ;
+                                  $offerqty = $item->qty-$freeqty;
+                                  $offer_subtotal=$offerqty*$item->rate;
+                                  ?> 
+                    Total Order Quantity ({{ @$item->qty }})<br>
+                    Total Offer free Quantity ({{ $freeqty }})<br>
+                    <b>Do Ratio:</b> {{@$item->product->do_ratio}} CTN : 1 CTN <br>
                          @endif
                     </td>
                     <td>{{ @$item->product->code }}</td>

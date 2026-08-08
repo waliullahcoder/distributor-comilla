@@ -26,7 +26,8 @@ class ActionButtons
                 if (Auth::user()->can($currentRoutePermission->name) && $data['edit'] == true && $permit_edit == 'yes') {
                     $actions .= '<a href="' . Route($edit, $data['id']) . '" class="btn btn-sm btn-warning border-0 px-10px tt link-edit" data-bs-toggle="tooltip" data-bs-placement="top" title="Edit"><i class="far fa-pencil-alt"></i></a>';
                 } elseif (Auth::user()->can($currentRoutePermission->name) && $data['edit'] == false) {
-                    $actions .= '<button type="button" class="btn btn-sm border-0 px-10px btn-success tt link-recovery" data-url="' . Route($delete, $data['id']) . '" data-bs-toggle="tooltip" data-bs-placement="top" title="Recover"><i class="fad fa-recycle"></i></button>';
+                      $actions .= '<a href="' . Route($edit, $data['id']) . '" class="btn btn-sm btn-warning border-0 px-10px tt link-edit" data-bs-toggle="tooltip" data-bs-placement="top" title="Edit"><i class="far fa-pencil-alt"></i></a>';
+                    // $actions .= '<button type="button" class="btn btn-sm border-0 px-10px btn-success tt link-recovery" data-url="' . Route($delete, $data['id']) . '" data-bs-toggle="tooltip" data-bs-placement="top" title="Recover"><i class="fad fa-recycle"></i></button>';
                 }
             }
         }

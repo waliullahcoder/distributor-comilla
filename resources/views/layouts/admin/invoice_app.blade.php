@@ -150,8 +150,8 @@
             <tr>
                 <td>
                     <div class="logo-area">
-                        <img src="{{ $setting->logo ? asset($setting->logo) : public_path('backend/images/logo/logo.jpg') }}"
-                            height="80" alt="Logo" />
+                        <img src="{{ $logo ? asset($logo) : public_path('backend/images/logo/logo.jpg') }}"
+                            height="100" alt="Logo" />
                     </div>
                 </td>
                 <td>

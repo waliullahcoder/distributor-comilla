@@ -10,7 +10,7 @@ use Illuminate\Database\Eloquent\SoftDeletes;
 class Sales extends Model
 {
     use HasFactory, SoftDeletes;
-    protected $fillable = ['company_id', 'product_type', 'store_id', 'staff_id', 'client_id', 'invoice', 'date', 'sales_type', 'total_amount', 'discount', 'total_paid', 'status', 'created_by', 'updated_by', 'deleted_by'];
+    protected $fillable = ['company_id', 'product_type', 'store_id','vendor_id', 'staff_id', 'client_id', 'invoice', 'date', 'sales_type', 'total_amount', 'discount', 'total_paid', 'status', 'created_by', 'updated_by', 'deleted_by'];
 
     protected static function booted()
     {
@@ -20,6 +20,10 @@ class Sales extends Model
     public function company()
     {
         return $this->belongsTo(Company::class, 'company_id')->withTrashed();
+    }
+    public function vendor()
+    {
+        return $this->belongsTo(Vendor::class, 'vendor_id');
     }
 
     public function store()

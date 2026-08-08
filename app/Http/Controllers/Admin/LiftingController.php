@@ -309,18 +309,22 @@ class LiftingController extends Controller
      */
     public function show(Request $request, string $id)
     {
-       
-        if (Auth::user()->company_id) {
-            $company = Company::find(Auth::user()->company_id);
-            $title = $company->name;
-            $informations = $company->address . '</br>' . $company->phone . ', ' . $company->email . ', ' . $company->website;
+       $data = Lifting::findOrFail($id);
+      
+        if ( $data) {
+            $company = $data->vendor->name;
+            $hotline = $data->vendor->phone;
+            $logo = $data->vendor->logo;
+            $title = $data->vendor->name;
+            $informations = $data->vendor->address . '</br>' . $data->vendor->phone . ', ' . $data->vendor->email . ', ' . $data->vendor->contact_person;
         } else {
+            $logo = NULL;
+            $hotline = '01xxxxx-xxxxx';
             $title = 'Company Name Goes Here.';
             $informations = 'Company address will goes here </br> Mobile: 0967XXXXXX, Email: youremail@gmail.com, www.website.com';
         }
-        $data = Lifting::findOrFail($id);
         $report_title = 'Lifting Voucher';
-         return view('admin.lifting.print', compact('title', 'informations', 'report_title', 'data'));
+         return view('admin.lifting.print', compact('title', 'informations', 'report_title', 'data','logo'));
         //$pdf = Pdf::loadView('admin.lifting.print', compact('title', 'informations', 'report_title', 'data'));
         // $pdf->setPaper('A4', 'landscape');
         return $pdf->stream('product_lifting_chalan_' . date('d_m_Y_H_i_s') . '.pdf');

@@ -22,27 +22,15 @@
             <input type="text" class="form-control date_picker" id="payment_date" name="payment_date"
                 value="{{ date('d-m-Y', strtotime($data->payment_date)) }}" placeholder="Payment Date" required>
         </div>
-        <div class="col-lg-3 col-sm-6">
+        <div class="col-lg-4 col-sm-6">
             <label for="payment_type" class="form-label"><b>Payment Type <span class="text-danger">*</span></b></label>
             <select name="payment_type" id="payment_type" class="select form-select" required>
                 <option value="Cash" {{ $data->payment_type == 'Cash' ? 'selected' : '' }}>Cash</option>
                 <option value="Bank" {{ $data->payment_type == 'Bank' ? 'selected' : '' }}>Bank</option>
             </select>
         </div>
-        <div class="col-lg-3 col-sm-6">
-            <label for="coa_setup_id" class="form-label"><b>Account Heads <span class="text-danger">*</span></b></label>
-            <select name="coa_setup_id" id="coa_setup_id" class="select form-select" data-placeholder="Select Account Head"
-                required>
-                <option value="">Select Account Head</option>
-                @foreach ($cash_heads as $cash_head)
-                    <option value="{{ $cash_head->id }}"
-                        {{ $selected_head->coa_setup_id == $cash_head->id ? 'selected' : '' }}>
-                        {{ $cash_head->head_name . ' - ' . $cash_head->head_code }}
-                    </option>
-                @endforeach
-            </select>
-        </div>
-        <div class="col-lg-3 col-sm-6">
+     
+        <div class="col-lg-4 col-sm-6">
             <label for="collection_type" class="form-label"><b>Collection Type <span
                         class="text-danger">*</span></b></label>
             <select name="collection_type" id="collection_type" class="select form-select" required>
@@ -52,12 +40,12 @@
                 </option>
             </select>
         </div>
-        <div class="col-lg-3 col-sm-6">
+        <div class="col-lg-4 col-sm-6">
             <label for="balance" class="form-label"><b>Balance</b></label>
             <input type="text" class="form-control" id="balance" name="balance" placeholder="Balance" readonly
                 value="{{ $balance }}">
         </div>
-        <div class="col-lg-4 col-sm-6">
+        <!-- <div class="col-lg-4 col-sm-6">
             <label for="staff_id" class="form-label"><b>Staff <span class="text-danger">*</span></b></label>
             <select name="staff_id" id="staff_id" class="select form-select" data-placeholder="Select Staff" required>
                 <option value=""></option>
@@ -67,8 +55,8 @@
                     </option>
                 @endforeach
             </select>
-        </div>
-        <div class="col-lg-4 col-sm-6">
+        </div> -->
+        <div class="col-lg-8 col-sm-6">
             <label for="remarks" class="form-label"><b>Remarks</b></label>
             <input type="text" class="form-control" id="remarks" name="remarks" placeholder="Remarks"
                 value="{{ $data->remarks }}">

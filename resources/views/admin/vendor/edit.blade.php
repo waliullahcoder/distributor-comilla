@@ -28,6 +28,10 @@
                 placeholder="Contact Number">
         </div>
         <div class="col-sm-6">
+            <label for="logo" class="form-label"><b>Logo</b></label>
+            <input type="file" class="form-control" id="logo" name="logo" accept="image/*"  value="{{ $data->logo }}"><img src="{{asset($data->logo)}}" style="width:30%;">
+        </div>
+        <div class="col-sm-6">
             <label for="address" class="form-label"><b>Contact Address</b></label>
             <input type="text" class="form-control" id="address" name="address" value="{{ $data->address }}"
                 placeholder="Contact Address">

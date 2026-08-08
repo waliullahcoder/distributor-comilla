@@ -12,7 +12,7 @@
                 <div class="col-sm-6">
                     <label for="thumbnail" class="form-label"><b>Product thumbnail <span
                                 class="text-danger">(600x600)</span> <span class="text-danger">*</span></b></label>
-                    <input type="file" name="thumbnail" id="thumbnail" class="form-control" required accept="image/*">
+                    <input type="file" name="thumbnail" id="thumbnail" class="form-control" accept="image/*">
                     <div id="showThamb-wrapper" style="display: none;">
                         <img class="mt-2" src="" alt="" id="showThamb" height="60">
                     </div>
@@ -78,7 +78,7 @@
                 <label class="form-label"><b>DO Ratio</b></label>
                 <select name="do_ratio" class="form-select">
                     @for($i = 4; $i <= 20; $i++)
-                        <option value="{{ $i }} CTN : 1 CTN">
+                        <option value="{{ $i }}">
                             {{ $i }} CTN : 1 CTN
                         </option>
                     @endfor

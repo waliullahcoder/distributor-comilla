@@ -5,11 +5,12 @@
         <div class="col-lg-3 col-md-4 col-sm-6">
             <label for="sales_type" class="form-label"><b>Sales Type <span class="text-danger">*</span></b></label>
             <select name="sales_type" id="sales_type" class="select form-select" data-placeholder="Sales Type" required>
-                <option value="credit" {{ $data->sales_type == 'credit' ? 'selected' : '' }}>Credit</option>
+                <!-- <option value="credit" {{ $data->sales_type == 'credit' ? 'selected' : '' }}>Credit</option> -->
                 <option value="cash" {{ $data->sales_type == 'cash' ? 'selected' : '' }}>Cash</option>
             </select>
         </div>
-        <div class="col-lg-3 col-md-4 col-sm-6" id="accounts_area"
+        <input type="hidden" name="coa_setup_id" value="26">
+        <!-- <div class="col-lg-3 col-md-4 col-sm-6" id="accounts_area"
             style="display: {{ $data->sales_type == 'cash' ? 'block' : 'none' }};">
             <label for="coa_setup_id" class="form-label"><b>Cash Account <span class="text-danger">*</span></b></label>
             <select name="coa_setup_id" id="coa_setup_id" class="select form-select" data-placeholder="Select Cash Account"
@@ -20,7 +21,7 @@
                     </option>
                 @endforeach
             </select>
-        </div>
+        </div> -->
         <div class="col-lg-3 col-md-4 col-sm-6">
             <label for="order_type" class="form-label"><b>Order Type</b></label>
             <select name="order_type" id="order_type" class="select form-select" data-placeholder="Order Type">
@@ -41,7 +42,7 @@
         <div class="col-lg-3 col-md-4 col-sm-6">
             <label for="store_id" class="form-label"><b>Store <span class="text-danger">*</span></b></label>
             <select name="store_id" id="store_id" class="select form-select" data-placeholder="Select Store" required>
-                <option value=""></option>
+                <!-- <option value=""></option> -->
                 @foreach ($stores as $store)
                     <option value="{{ $store->id }}" {{ $data->store_id == $store->id ? 'selected' : '' }}>
                         {{ $store->name }}
@@ -52,7 +53,7 @@
         <div class="col-lg-3 col-md-4 col-sm-6">
             <label for="client_id" class="form-label"><b>Client Name <span class="text-danger">*</span></b></label>
             <select name="client_id" id="client_id" class="select form-select" data-placeholder="Select Client" required>
-                <option value=""></option>
+                <!-- <option value=""></option> -->
                 @foreach ($clients as $client)
                     <option value="{{ $client->id }}" {{ $data->client_id == $client->id ? 'selected' : '' }}>
                         {{ $client->name }}
@@ -69,7 +70,7 @@
         <div class="col-lg-3 col-md-4 col-sm-6" id="vendor_area">
             <label for="vendor_id" class="form-label"><b>Vendor</b></label>
             <select name="vendor_id" id="vendor_id" class="select form-select" data-placeholder="Select Vendor">
-                <option value=""></option>
+                <!-- <option value=""></option> -->
                 @foreach ($vendors as $vendor)
                     <option value="{{ $vendor->id }}">{{ $vendor->name }}</option>
                 @endforeach
@@ -78,7 +79,7 @@
         <div class="col-lg-3 col-md-4 col-sm-6">
             <label for="staff_id" class="form-label"><b>Staff <span class="text-danger">*</span></b></label>
             <select name="staff_id" id="staff_id" class="select form-select" data-placeholder="Select Staff" required>
-                <option value=""></option>
+                <!-- <option value=""></option> -->
                 @foreach ($staffs as $staff)
                     <option value="{{ $staff->id }}" {{ $data->staff_id == $staff->id ? 'selected' : '' }}>
                         {{ $staff->name }}

@@ -6,7 +6,7 @@
             <div class="row g-3">
                 <div class="col-sm-6">
                     <label for="name" class="form-label"><b>Product Name <span class="text-danger">*</span></b></label>
-                    <input type="text" id="name" class="form-control" name="name" required
+                    <input type="text" id="name" class="form-control" name="name"
                         placeholder="Product Name." value="{{ $data->name }}">
                 </div>
                 <div class="col-sm-6">
@@ -70,8 +70,8 @@
                     <label class="form-label"><b>DO Ratio</b></label>
                     <select name="do_ratio" class="form-select">
                         @for($i = 4; $i <= 20; $i++)
-                            <option value="{{ $i }} CTN : 1 CTN"
-                                {{ old('do_ratio', $data->do_ratio) == ($i.' CTN : 1 CTN') ? 'selected' : '' }}>
+                            <option value="{{ $i }}"
+                                {{ old('do_ratio', $data->do_ratio) == ($i) ? 'selected' : '' }}>
                                 {{ $i }} CTN : 1 CTN
                             </option>
                         @endfor

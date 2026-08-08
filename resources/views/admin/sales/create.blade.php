@@ -5,14 +5,14 @@
         <div class="col-lg-3 col-md-4 col-sm-6">
             <label for="sales_type" class="form-label"><b>Sales Type <span class="text-danger">*</span></b></label>
             <select name="sales_type" id="sales_type" class="select form-select" data-placeholder="Sales Type" required>
-                <option value="credit">Credit</option>
+                <!-- <option value="credit">Credit</option> -->
                 <option value="cash">Cash</option>
             </select>
         </div>
         <div class="col-lg-3 col-md-4 col-sm-6" id="accounts_area" style="display: none;">
             <label for="coa_setup_id" class="form-label"><b>Cash Account <span class="text-danger">*</span></b></label>
             <select name="coa_setup_id" id="coa_setup_id" class="select form-select" data-placeholder="Select Cash Account">
-                <option value="">Select Cash Account</option>
+                <!-- <option value="">Select Cash Account</option> -->
                 @foreach ($cash_heads as $cash_head)
                     <option value="{{ $cash_head->id }}">{{ $cash_head->head_name . ' - ' . $cash_head->head_code }}
                     </option>
@@ -49,7 +49,7 @@
         <div class="col-lg-3 col-md-4 col-sm-6">
             <label for="client_id" class="form-label"><b>Client Name <span class="text-danger">*</span></b></label>
             <select name="client_id" id="client_id" class="select form-select" data-placeholder="Select Client" required>
-                <option value=""></option>
+                <!-- <option value=""></option> -->
                 @foreach ($clients as $client)
                     <option value="{{ $client->id }}"
                         {{ old('client_id') && old('client_id') == $client->id ? 'selected' : '' }}>{{ $client->name }}
@@ -66,7 +66,7 @@
         <div class="col-lg-3 col-md-4 col-sm-6" id="vendor_area">
             <label for="vendor_id" class="form-label"><b>Vendor</b></label>
             <select name="vendor_id" id="vendor_id" class="select form-select" data-placeholder="Select Vendor">
-                <option value=""></option>
+                <!-- <option value=""></option> -->
                 @foreach ($vendors as $vendor)
                     <option value="{{ $vendor->id }}">{{ $vendor->name }}
                     </option>
@@ -76,7 +76,7 @@
         <div class="col-lg-3 col-md-4 col-sm-6">
             <label for="staff_id" class="form-label"><b>Staff <span class="text-danger">*</span></b></label>
             <select name="staff_id" id="staff_id" class="select form-select" data-placeholder="Select Staff" required>
-                <option value=""></option>
+                <!-- <option value=""></option> -->
                 @foreach ($staffs as $staff) 
                     <option value="{{ $staff->id }}" {{ Auth::user()->staff_id == $staff->id ? 'selected' : '' }}>
                         {{ $staff->name }}( {{ $staff->type }})
@@ -553,19 +553,19 @@
                     });
                     return;
                 }
-                //Stock validation removed invoice create permitted 0 stock case
-                // if (quantity == '' || quantity == '0') {
-                //     Swal.fire({
-                //         width: "22rem",
-                //         position: 'top-right',
-                //         toast: true,
-                //         text: "Please take Quantity",
-                //         icon: "error",
-                //         showConfirmButton: false,
-                //         timer: 1500
-                //     });
-                //     return;
-                // }
+              //  Stock validation removed invoice create permitted 0 stock case
+                if (quantity == '' || quantity == '0') {
+                    Swal.fire({
+                        width: "22rem",
+                        position: 'top-right',
+                        toast: true,
+                        text: "Please take Quantity",
+                        icon: "error",
+                        showConfirmButton: false,
+                        timer: 1500
+                    });
+                    return;
+                }
                 if (store_id == '') {
                     Swal.fire({
                         width: "22rem",

@@ -1,7 +1,7 @@
 <?php
 
 namespace App\Http\Controllers\Admin;
-
+use App\HelperClass;
 use App\Models\Vendor;
 use App\Models\CoaSetup;
 use Illuminate\Http\Request;
@@ -102,6 +102,18 @@ class VendorController extends Controller
                     'created_by'  => Auth::user()->id,
                 ]);
 
+                $logo = $request->file('logo');
+                if (isset($logo)) {
+                    $response = HelperClass::storeImage($logo, 500, 'media/company/');
+                    if ($response['status'] == 'success') {
+                        $path_name =  $response['path_name'];
+                    } else {
+                        $path_name = NULL;
+                    }
+                } else {
+                    $path_name = NULL;
+                }
+
                 Vendor::create([
                     'company_id'    => Auth::user()->company_id ?? 1,
                     'code'          => $request->code,
@@ -110,6 +122,7 @@ class VendorController extends Controller
                     'email'         => $request->email,
                     'phone'         => $request->phone,
                     'address'       => $request->address,
+                    'logo' => $path_name,
                     'coa_setup_id' => $account->id,
                     'created_by'    => Auth::user()->id,
                 ]);
@@ -191,7 +204,17 @@ class VendorController extends Controller
                         'created_by'  => Auth::user()->id,
                     ]);
                 }
-
+                $logo = $request->file('logo');
+                if (isset($logo)) {
+                    $response = HelperClass::storeImage($logo, 500, 'media/company/', $data->logo);
+                    if ($response['status'] == 'success') {
+                        $path_name =  $response['path_name'];
+                    } else {
+                        $path_name = $data->logo;
+                    }
+                } else {
+                    $path_name = $data->logo;
+                }
 
                 $data->update([
                     'code' => $request->code,
@@ -200,6 +223,7 @@ class VendorController extends Controller
                     'email' => $request->email,
                     'phone' => $request->phone,
                     'address' => $request->address,
+                    'logo' => $path_name,
                     'coa_setup_id' => $account->id,
                     'updated_by' => Auth::user()->id,
                 ]);

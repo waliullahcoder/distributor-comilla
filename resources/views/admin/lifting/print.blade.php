@@ -78,7 +78,7 @@
                        
                      @if($row->product->type==1)
                       <b>Trade Offer:</b> {{$row->product->trade_offer}} <br>
-                      <b>Do Ratio:</b> {{$row->product->do_ratio}} <br>
+                      <b>Do Ratio:</b> {{$row->product->do_ratio}} CTN : 1 CTN<br>
                      @endif
 
                     </td>
