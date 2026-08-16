@@ -2,13 +2,14 @@
 
 @section('content')
     <div class="row g-3 align-items-center">
-        <div class="col-lg-3 col-md-4 col-sm-6">
+        <!-- <div class="col-lg-3 col-md-4 col-sm-6">
             <label for="sales_type" class="form-label"><b>Sales Type <span class="text-danger">*</span></b></label>
             <select name="sales_type" id="sales_type" class="select form-select" data-placeholder="Sales Type" required>
-                <!-- <option value="credit" {{ $data->sales_type == 'credit' ? 'selected' : '' }}>Credit</option> -->
+                <option value="credit" {{ $data->sales_type == 'credit' ? 'selected' : '' }}>Credit</option>
                 <option value="cash" {{ $data->sales_type == 'cash' ? 'selected' : '' }}>Cash</option>
             </select>
-        </div>
+        </div> -->
+         <input type="hidden" name="sales_type" value="credit">
         <input type="hidden" name="coa_setup_id" value="26">
         <!-- <div class="col-lg-3 col-md-4 col-sm-6" id="accounts_area"
             style="display: {{ $data->sales_type == 'cash' ? 'block' : 'none' }};">

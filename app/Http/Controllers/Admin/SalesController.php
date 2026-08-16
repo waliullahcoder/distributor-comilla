@@ -83,6 +83,8 @@ class SalesController extends Controller
                     $addiotional_buttons = '';
                     $addiotional_buttons .= '<a class="btn btn-sm border-0 px-10px fs-15 text-white tt btn-print-1" href="' . Route('admin.sales.show', $row->id) . '" target="_blank"  data-bs-toggle="tooltip" data-bs-placement="top" title="Chalan"><i class="fal fa-print"></i></a>';
                     $addiotional_buttons .= '<a class="btn btn-sm border-0 px-10px fs-15 text-white tt btn-print-2" href="' . Route('admin.sales.invoice', $row->id) . '" target="_blank"  data-bs-toggle="tooltip" data-bs-placement="top" title="Invoice"><i class="fal fa-file-pdf"></i></a>';
+
+                    $addiotional_buttons .= '<a class="btn btn-sm border-0 px-10px fs-15 text-white tt btn-print-1" href="' . Route('admin.sales.delivery', $row->id) . '" target="_blank"  data-bs-toggle="tooltip" data-bs-placement="top" title="Delivery"><i class="fal fa-truck"></i></a>';
                     if (@$row->client->is_vat == 1) {
                         $addiotional_buttons .= '<a class="btn btn-sm border-0 px-10px fs-15 text-white tt btn-print-3" href="' . Route('admin.sales.vat', $row->id) . '" target="_blank"  data-bs-toggle="tooltip" data-bs-placement="top" title="Vat Chalan"><i class="fal fa-print-search"></i></a>';
                     }
@@ -402,65 +404,65 @@ class SalesController extends Controller
                     AccountTransactionAuto::insert($postData);
                 }
 
-                if ($request->sales_type == 'cash') {
-                    $first = date('Y-m-01');
-                    $last = new Carbon('last day of this month');
-                    $pay_data = Collection::withoutGlobalScope(CompanyScope::class)->withTrashed()->select(['payment_no'])->where('created_at', '>=', $first)->where('created_at', '<=', $last)->latest('id')->first();
-                    if ($pay_data) {
-                        $trim = str_replace("STC", '', $pay_data->payment_no);
-                        $dataPrefix = (int)$trim + 1;
-                        $payment_no = "STC" . $dataPrefix;
-                    } else {
-                        $payment_no = "STC" . date('y') . date('m') . '000001';
-                    }
+                // if ($request->sales_type == 'cash') {
+                //     $first = date('Y-m-01');
+                //     $last = new Carbon('last day of this month');
+                //     $pay_data = Collection::withoutGlobalScope(CompanyScope::class)->withTrashed()->select(['payment_no'])->where('created_at', '>=', $first)->where('created_at', '<=', $last)->latest('id')->first();
+                //     if ($pay_data) {
+                //         $trim = str_replace("STC", '', $pay_data->payment_no);
+                //         $dataPrefix = (int)$trim + 1;
+                //         $payment_no = "STC" . $dataPrefix;
+                //     } else {
+                //         $payment_no = "STC" . date('y') . date('m') . '000001';
+                //     }
 
-                    $collection = Collection::create([
-                        'company_id' => Auth::user()->company_id ?? 1,
-                        'client_id' => $request->client_id,
-                        'payment_no' => $payment_no,
-                        'amount' => $total_amount - $request->discount,
-                        'payment_date' => date('Y-m-d', strtotime($request->date)),
-                        'collection_type' => 'collection',
-                        'payment_type' => $request->sales_type,
-                        'remarks' => 'Paid on Sale',
-                        'sales_id' => $sales->id,
-                        'created_by' => Auth::user()->id,
-                    ]);
+                //     $collection = Collection::create([
+                //         'company_id' => Auth::user()->company_id ?? 1,
+                //         'client_id' => $request->client_id,
+                //         'payment_no' => $payment_no,
+                //         'amount' => $total_amount - $request->discount,
+                //         'payment_date' => date('Y-m-d', strtotime($request->date)),
+                //         'collection_type' => 'collection',
+                //         'payment_type' => $request->sales_type,
+                //         'remarks' => 'Paid on Sale',
+                //         'sales_id' => $sales->id,
+                //         'created_by' => Auth::user()->id,
+                //     ]);
 
-                    CollectionData::create([
-                        'collection_id' => $collection->id,
-                        'sales_id' => $sales->id,
-                        'amount' => $total_amount - $request->discount,
-                    ]);
+                //     CollectionData::create([
+                //         'collection_id' => $collection->id,
+                //         'sales_id' => $sales->id,
+                //         'amount' => $total_amount - $request->discount,
+                //     ]);
 
-                    if (@$admin_setting->accounting == 1 && $client->coa) {
-                        $cash_head = CoaSetup::findOrFail($request->coa_setup_id);
-                        $headCode = collect([
-                            '0' => $cash_head->head_code,
-                            '1' => $client->coa->head_code
-                        ]);
+                //     if (@$admin_setting->accounting == 1 && $client->coa) {
+                //         $cash_head = CoaSetup::findOrFail($request->coa_setup_id);
+                //         $headCode = collect([
+                //             '0' => $cash_head->head_code,
+                //             '1' => $client->coa->head_code
+                //         ]);
 
-                        $postData = [];
-                        for ($i = 0; $i < $countHead; $i++) {
-                            $coa = CoaSetup::where('company_id', Auth::user()->company_id ?? 1)->where('head_code', $headCode[$i])->first();
-                            $postData[] = [
-                                'company_id' => Auth::user()->company_id ?? 1,
-                                'voucher_no' => $payment_no,
-                                'voucher_type' => "Collection",
-                                'voucher_date' => date('Y-m-d', strtotime($request->date)),
-                                'coa_setup_id' => $coa->id,
-                                'coa_head_code' => $headCode[$i],
-                                'narration' => 'Collection Against PAYMENT NO - ' . $payment_no,
-                                'debit_amount' => $debit_amount[$i],
-                                'credit_amount' => $credit_amount[$i],
-                                'created_by' => Auth::user()->id,
-                                'created_at' => Carbon::now(),
-                                'updated_at' => Carbon::now()
-                            ];
-                        }
-                        AccountTransactionAuto::insert($postData);
-                    }
-                }
+                //         $postData = [];
+                //         for ($i = 0; $i < $countHead; $i++) {
+                //             $coa = CoaSetup::where('company_id', Auth::user()->company_id ?? 1)->where('head_code', $headCode[$i])->first();
+                //             $postData[] = [
+                //                 'company_id' => Auth::user()->company_id ?? 1,
+                //                 'voucher_no' => $payment_no,
+                //                 'voucher_type' => "Collection",
+                //                 'voucher_date' => date('Y-m-d', strtotime($request->date)),
+                //                 'coa_setup_id' => $coa->id,
+                //                 'coa_head_code' => $headCode[$i],
+                //                 'narration' => 'Collection Against PAYMENT NO - ' . $payment_no,
+                //                 'debit_amount' => $debit_amount[$i],
+                //                 'credit_amount' => $credit_amount[$i],
+                //                 'created_by' => Auth::user()->id,
+                //                 'created_at' => Carbon::now(),
+                //                 'updated_at' => Carbon::now()
+                //             ];
+                //         }
+                //         AccountTransactionAuto::insert($postData);
+                //     }
+                // }
 
                 $store = Store::find($request->store_id);
                 $products_info = '';
@@ -550,7 +552,6 @@ class SalesController extends Controller
      */
     public function invoice(string $id)
     {
-        
         $data = Sales::findOrFail($id);
         if ($data) {
             $company = $data->vendor->name;
@@ -558,20 +559,51 @@ class SalesController extends Controller
             $logo = $data->vendor->logo;
             $title = $data->vendor->name;
             $informations = $data->vendor->address . '</br>' . $data->vendor->phone . ', ' . $data->vendor->email . ', ' . $data->vendor->contact_person;
+
         } else {
             $logo = NULL;
             $hotline = '01xxxxx-xxxxx';
             $title = 'Company Name Goes Here.';
             $informations = 'Company address will goes here </br> Mobile: 0967XXXXXX, Email: youremail@gmail.com, www.website.com';
         }
-
+       
         $total_sale_amount = Sales::whereNotIn('id', [$id])->where('client_id', $data->client_id)->sum('total_amount');
         $total_discount_amount = SalesList::where('sales_id', $id)->where('client_id', $data->client_id)->sum('discount');
         $total_paid_amount = Collection::where('client_id', $data->client_id)->where('payment_no', '!=', $data->invoice)->where('collection_type', '!=', 'adjust')->sum('amount');
         $opening = $total_sale_amount - ($total_discount_amount + $total_paid_amount);
 
         $report_title = 'Invoice';
+        
          return view('admin.sales.invoice', compact('title','total_discount_amount', 'logo', 'informations', 'hotline', 'report_title', 'data', 'opening'));
+        // $pdf = Pdf::loadView('admin.sales.invoice', compact('title', 'logo', 'informations', 'hotline', 'report_title', 'data', 'opening'));
+        // $pdf->setPaper('A4', 'landscape');
+        return $pdf->stream('sales_invoice_' . date('d_m_Y_H_i_s') . '.pdf');
+    }
+     public function delivery(string $id)
+    {
+        $data = Sales::findOrFail($id);
+        if ($data) {
+            $company = $data->vendor->name;
+            $hotline = $data->vendor->phone;
+            $logo = $data->vendor->logo;
+            $title = $data->vendor->name;
+            $informations = $data->vendor->address . '</br>' . $data->vendor->phone . ', ' . $data->vendor->email . ', ' . $data->vendor->contact_person;
+
+        } else {
+            $logo = NULL;
+            $hotline = '01xxxxx-xxxxx';
+            $title = 'Company Name Goes Here.';
+            $informations = 'Company address will goes here </br> Mobile: 0967XXXXXX, Email: youremail@gmail.com, www.website.com';
+        }
+       
+        $client_total_delivery_amount = Sales::where('id', $id)->where('client_id', $data->client_id)->sum('total_delivery_amount');
+        $total_discount_amount = SalesList::where('sales_id', $id)->where('client_id', $data->client_id)->sum('discount');
+        $total_paid_amount = Collection::where('client_id', $data->client_id)->where('payment_no', '!=', $data->invoice)->where('collection_type', '!=', 'adjust')->sum('amount');
+        $opening = $client_total_delivery_amount - ($total_discount_amount + $total_paid_amount);
+
+        $report_title = 'Delivery';
+        
+         return view('admin.sales.delivery', compact('title','total_discount_amount', 'logo', 'informations', 'hotline', 'report_title', 'data', 'opening','client_total_delivery_amount'));
         // $pdf = Pdf::loadView('admin.sales.invoice', compact('title', 'logo', 'informations', 'hotline', 'report_title', 'data', 'opening'));
         // $pdf->setPaper('A4', 'landscape');
         return $pdf->stream('sales_invoice_' . date('d_m_Y_H_i_s') . '.pdf');
@@ -776,9 +808,9 @@ class SalesController extends Controller
         $balance = ($returnAmount + $paymentAmount + $client->credit_limit) - $salesAmount;
 
         // For Next time Calculate Due for and Deduct with Client Credit Limitation;
-        if ($request->sales_type == 'credit' && $balance < $request->net_payable) {
-            return redirect()->back()->withErrors('Insufficient Credit Limit please check client limitation');
-        }
+        // if ($request->sales_type == 'credit' && $balance < $request->net_payable) {
+        //     return redirect()->back()->withErrors('Insufficient Credit Limit please check client limitation');
+        // }
 
         try {
             DB::transaction(function () use ($request, $id, $admin_setting) {
@@ -791,9 +823,17 @@ class SalesController extends Controller
                 }
                 SalesList::where('sales_id', $id)->delete();
 
-                $total_amount = 0;
-                foreach ($request->amount as $amount) {
+               $total_amount = 0;
+               $total_delivery_amount = 0;
+
+                foreach ($request->amount as $key => $amount) {
+
                     $total_amount += $amount;
+
+                    $delivery = $request->delivery[$key] ?? 0;
+                    $rate = $request->rate[$key] ?? 0;
+
+                    $total_delivery_amount += $delivery * $rate;
                 }
                 $store_id = $request->store_id;
                 $sales->update([
@@ -803,6 +843,7 @@ class SalesController extends Controller
                     'date' => date('Y-m-d', strtotime($request->date)),
                     'sales_type' => $request->sales_type,
                     'total_amount' => $total_amount,
+                    'total_delivery_amount' => $total_delivery_amount,
                     'discount' => $request->discount,
                     'total_paid' => $request->sales_type == 'cash' ? $request->net_payable : 0,
                     'updated_by' => Auth::user()->id,
@@ -823,6 +864,18 @@ class SalesController extends Controller
                         }
 
                         $discount = ($request->discount / $request->total_amount) * $request->amount[$key];
+                         $product=Product::find($product_id);
+                       $tradediscount= 0;
+                        if($product->type==1){
+                            $offerqty=0;
+                            $freeqty=0;
+                            $offer_subtotal=0;
+                            $freeqty= floor($request->qty[$key]/(int)$product->do_ratio) ;
+                            $offerqty = $request->qty[$key]-$freeqty;
+                            $offer_subtotal=$offerqty*$request->rate[$key];
+                           $tradediscount=$freeqty*$request->rate[$key];
+                        }
+                        $delivery_amount = $request->rate[$key]*$request->delivery[$key]??0;
                         SalesList::create([
                             'company_id' => Auth::user()->company_id ?? 1,
                             'sales_id' => $sales->id,
@@ -834,7 +887,8 @@ class SalesController extends Controller
                             'qty' => $request->qty[$key],
                             'delivery' => $request->delivery[$key],
                             'amount' => $request->amount[$key],
-                            'discount' => $discount,
+                            'delivery_amount' => $delivery_amount,
+                            'discount' => $discount+$tradediscount,
                             'collection' => $request->sales_type == 'cash' ? ($request->amount[$key] - $discount) : 0.00,
                         ]);
                    // }
@@ -880,65 +934,65 @@ class SalesController extends Controller
                     AccountTransactionAuto::insert($postData);
                 }
 
-                if ($request->sales_type == 'cash') {
-                    $first = date('Y-m-01');
-                    $last = new Carbon('last day of this month');
-                    $pay_data = Collection::withoutGlobalScope(CompanyScope::class)->withTrashed()->select(['payment_no'])->where('created_at', '>=', $first)->where('created_at', '<=', $last)->latest('id')->first();
-                    if ($pay_data) {
-                        $trim = str_replace("STC", '', $pay_data->payment_no);
-                        $dataPrefix = (int)$trim + 1;
-                        $payment_no = "STC" . $dataPrefix;
-                    } else {
-                        $payment_no = "STC" . date('y') . date('m') . '000001';
-                    }
+                // if ($request->sales_type == 'cash') {
+                //     $first = date('Y-m-01');
+                //     $last = new Carbon('last day of this month');
+                //     $pay_data = Collection::withoutGlobalScope(CompanyScope::class)->withTrashed()->select(['payment_no'])->where('created_at', '>=', $first)->where('created_at', '<=', $last)->latest('id')->first();
+                //     if ($pay_data) {
+                //         $trim = str_replace("STC", '', $pay_data->payment_no);
+                //         $dataPrefix = (int)$trim + 1;
+                //         $payment_no = "STC" . $dataPrefix;
+                //     } else {
+                //         $payment_no = "STC" . date('y') . date('m') . '000001';
+                //     }
 
-                    $collection = Collection::create([
-                        'company_id' => Auth::user()->company_id ?? 1,
-                        'client_id' => $request->client_id,
-                        'payment_no' => $payment_no,
-                        'amount' => $request->net_payable,
-                        'payment_date' => date('Y-m-d', strtotime($request->date)),
-                        'collection_type' => 'collection',
-                        'payment_type' => $request->sales_type,
-                        'remarks' => 'Paid on Sale',
-                        'sales_id' => $sales->id,
-                        'created_by' => Auth::user()->id,
-                    ]);
+                //     $collection = Collection::create([
+                //         'company_id' => Auth::user()->company_id ?? 1,
+                //         'client_id' => $request->client_id,
+                //         'payment_no' => $payment_no,
+                //         'amount' => $request->net_payable,
+                //         'payment_date' => date('Y-m-d', strtotime($request->date)),
+                //         'collection_type' => 'collection',
+                //         'payment_type' => $request->sales_type,
+                //         'remarks' => 'Paid on Sale',
+                //         'sales_id' => $sales->id,
+                //         'created_by' => Auth::user()->id,
+                //     ]);
 
-                    CollectionData::create([
-                        'collection_id' => $collection->id,
-                        'sales_id' => $sales->id,
-                        'amount' => $request->net_payable,
-                    ]);
+                //     CollectionData::create([
+                //         'collection_id' => $collection->id,
+                //         'sales_id' => $sales->id,
+                //         'amount' => $request->net_payable,
+                //     ]);
 
-                    if (@$admin_setting->accounting == 1 && $client->coa) {
-                        $cash_head = CoaSetup::findOrFail($request->coa_setup_id);
-                        $headCode = collect([
-                            '0' => $cash_head->head_code,
-                            '1' => $client->coa->head_code
-                        ]);
+                //     if (@$admin_setting->accounting == 1 && $client->coa) {
+                //         $cash_head = CoaSetup::findOrFail($request->coa_setup_id);
+                //         $headCode = collect([
+                //             '0' => $cash_head->head_code,
+                //             '1' => $client->coa->head_code
+                //         ]);
 
-                        $postData = [];
-                        for ($i = 0; $i < $countHead; $i++) {
-                            $coa = CoaSetup::where('company_id', Auth::user()->company_id ?? 1)->where('head_code', $headCode[$i])->first();
-                            $postData[] = [
-                                'company_id' => Auth::user()->company_id ?? 1,
-                                'voucher_no' => $payment_no,
-                                'voucher_type' => "Collection",
-                                'voucher_date' => date('Y-m-d', strtotime($request->date)),
-                                'coa_setup_id' => $coa->id,
-                                'coa_head_code' => $headCode[$i],
-                                'narration' => 'Collection Against PAYMENT NO - ' . $payment_no,
-                                'debit_amount' => $debit_amount[$i],
-                                'credit_amount' => $credit_amount[$i],
-                                'created_by' => Auth::user()->id,
-                                'created_at' => Carbon::now(),
-                                'updated_at' => Carbon::now()
-                            ];
-                        }
-                        AccountTransactionAuto::insert($postData);
-                    }
-                }
+                //         $postData = [];
+                //         for ($i = 0; $i < $countHead; $i++) {
+                //             $coa = CoaSetup::where('company_id', Auth::user()->company_id ?? 1)->where('head_code', $headCode[$i])->first();
+                //             $postData[] = [
+                //                 'company_id' => Auth::user()->company_id ?? 1,
+                //                 'voucher_no' => $payment_no,
+                //                 'voucher_type' => "Collection",
+                //                 'voucher_date' => date('Y-m-d', strtotime($request->date)),
+                //                 'coa_setup_id' => $coa->id,
+                //                 'coa_head_code' => $headCode[$i],
+                //                 'narration' => 'Collection Against PAYMENT NO - ' . $payment_no,
+                //                 'debit_amount' => $debit_amount[$i],
+                //                 'credit_amount' => $credit_amount[$i],
+                //                 'created_by' => Auth::user()->id,
+                //                 'created_at' => Carbon::now(),
+                //                 'updated_at' => Carbon::now()
+                //             ];
+                //         }
+                //         AccountTransactionAuto::insert($postData);
+                //     }
+                // }
 
                 $store = Store::find($request->store_id);
                 $products_info = '';
@@ -958,8 +1012,9 @@ class SalesController extends Controller
 
             return redirect()->Route('admin.sales.index')->withSuccessMessage('Created Successfully!');
         } catch (Throwable $caught) {
+            dd ($caught);
             if ($caught) {
-                return redirect()->back()->withErrors('Stock not available!');
+                return redirect()->back()->withErrors('Something is wrong!');
             }
         }
     }

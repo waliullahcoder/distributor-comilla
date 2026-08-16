@@ -2,13 +2,14 @@
 
 @section('content')
     <div class="row g-3">
-        <div class="col-lg-3 col-md-4 col-sm-6">
+        <!-- <div class="col-lg-3 col-md-4 col-sm-6">
             <label for="sales_type" class="form-label"><b>Sales Type <span class="text-danger">*</span></b></label>
             <select name="sales_type" id="sales_type" class="select form-select" data-placeholder="Sales Type" required>
-                <!-- <option value="credit">Credit</option> -->
+                <option value="credit">Credit</option>
                 <option value="cash">Cash</option>
             </select>
-        </div>
+        </div> -->
+       <input type="hidden" name="sales_type" value="credit">
         <div class="col-lg-3 col-md-4 col-sm-6" id="accounts_area" style="display: none;">
             <label for="coa_setup_id" class="form-label"><b>Cash Account <span class="text-danger">*</span></b></label>
             <select name="coa_setup_id" id="coa_setup_id" class="select form-select" data-placeholder="Select Cash Account">

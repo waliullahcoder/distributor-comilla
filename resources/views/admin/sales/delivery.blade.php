@@ -61,9 +61,9 @@
                 <span class="d-inline-block" style="min-width: 200px;">{{ $data->invoice }}</span>
             </td>
             <td class="text-right">
-                <b class="d-inline-block text-left">Invoice Date :</b>
+                <b class="d-inline-block text-left">Delivery Date :</b>
                 <span class="d-inline-block"
-                    style="min-width: 130px;">{{ date('d-m-Y', strtotime($data->date)) }}</span>
+                    style="min-width: 130px;">{{ date('d-m-Y', strtotime($data->updated_at)) }}</span>
             </td>
         </tr>
         <tr>
@@ -96,6 +96,16 @@
                 <span class="d-inline-block" style="min-width: 130px;">{{ @$data->staff->phone }}</span>
             </td>
         </tr>
+         <tr>
+            <td>
+                <b class="d-inline-block" style="min-width: 100px;">Region :</b>
+                <span class="d-inline-block" style="min-width: 200px;">{{ @$data->client->area? $data->client->area->region->name : '-' }}, {{ @$data->client->area? $data->client->area->region->phone : '-' }}</span>
+            </td>
+            <td class="text-right">
+                <b class="d-inline-block text-left">Invoice Date :</b>
+                <span class="d-inline-block" style="min-width: 130px;">{{ date('d-m-Y', strtotime($data->date)) }}</span>
+            </td>
+        </tr>
     </table>
     <table class="table info-table align-middle" style="border: 2px solid black; margin-top: -2px; margin-bottom: 5px;">
         <thead>
@@ -106,7 +116,7 @@
                 <th>Variant</th>
                 @endif
                 <th width="70">Product Code</th>
-                <th width="70">Qty</th>
+                <th width="70">Delivery</th>
                 <th width="70">Rate</th>
                 <th width="70" class="text-right">Amount</th>
             </tr>
@@ -136,10 +146,10 @@
                 <td width="50">
                    {{ @$item->product->code }}
                 </td>
-                <td width="50">{{ @$item->qty }}</td>
+                <td width="50">{{ @$item->delivery }}</td>
                 <td width="50">{{ number_format($item->rate, 2, '.', ',') }}</td>
                 <td class="text-right" width="70">
-                    {{ number_format($item->rate * $item->qty, 2, '.', ',') }}
+                    {{ number_format($item->rate * $item->delivery, 2, '.', ',') }}
                 </td>
             </tr>
             @endforeach
@@ -147,10 +157,10 @@
         <tfoot>
             <tr>
                 <td colspan="{{ $data->product_type == 'Consumer' ? '2' : '3' }}" rowspan="3"><b>In words :</b>
-                    {{ \App\HelperClass::convertNumber($data->total_amount - $total_discount_amount) }} Taka
+                    {{ \App\HelperClass::convertNumber($data->total_delivery_amount - $total_discount_amount) }} Taka
                     Only</td>
                 <td class="text-right" colspan="3"><b>Total Amount :</b></td>
-                <td class="text-right" width="70">{{ number_format($data->total_amount, 2, '.', ',') }}</td>
+                <td class="text-right" width="70">{{ number_format($data->total_delivery_amount, 2, '.', ',') }}</td>
             </tr>
             @if ($total_discount_amount > 0)
             <tr>
@@ -161,20 +171,35 @@
             <tr>
                 <td class="text-right" colspan="3"><b>Net Invoice Amount :</b></td>
                 <td class="text-right" width="70">
-                    {{ number_format($data->total_amount - $total_discount_amount, 2, '.', ',') }}</td>
+                    {{ number_format($data->total_delivery_amount - $total_discount_amount, 2, '.', ',') }}</td>
             </tr>
         </tfoot>
     </table>
     <table class="table mb-0 info-table align-middle" style="border: 2px solid black;">
         <tbody>
             <tr>
-                <td class="text-right" colspan="5"><b>Opening Balance :</b></td>
+                <td colspan="2" rowspan="3">
+                    <b>Total Delivery :</b><br>
+                    @foreach ($data->list as $item)
+                    {{ @$item->product->name }} : {{@$item->delivery }} CTN<br>
+                    @endforeach 
+                    <b>Total Pending :</b><br>
+                    @foreach ($data->list as $item)
+                    {{ @$item->product->name }} : {{@$item->qty-$item->delivery }} CTN<br>
+                    @endforeach
+                   
+                </td>
+                <td class="text-right" colspan="3"><b>Total Delivery Amount :</b></td>
+                <td class="text-right" width="70">{{ number_format($client_total_delivery_amount, 2, '.', ',') }}</td>
+            </tr>
+            <tr>
+                <td class="text-right" colspan="3"><b>Opening Balance :</b></td>
                 <td class="text-right" width="70">{{ number_format($opening, 2, '.', ',') }}</td>
             </tr>
             <tr>
-                <td class="text-right" colspan="5"><b>Update Balance :</b></td>
+                <td class="text-right" colspan="3"><b>Update Balance :</b></td>
                 @php
-                $payable = $opening + $data->total_amount - $total_discount_amount;
+                $payable = $opening + $data->total_delivery_amount - $total_discount_amount;
                 @endphp
                 <td class="text-right" width="70">{{ number_format($payable, 2, '.', ',') }}</td>
             </tr>

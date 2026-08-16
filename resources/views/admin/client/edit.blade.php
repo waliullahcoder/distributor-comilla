@@ -27,8 +27,8 @@
             </select>
         </div>
         <div class="col-sm-6">
-            <label for="area_id" class="form-label"><b>Area</b></label>
-            <select name="area_id" id="area_id" class="select form-select" data-placeholder="Select Area">
+            <label for="area_id" class="form-label"><b>Area <span class="text-danger">*</span></b></label>
+            <select name="area_id" id="area_id" class="select form-select" data-placeholder="Select Area" required>
                 <option value=""></option>
                 @foreach ($areas as $area)
                     <option value="{{ $area->id }}" {{ $data->area_id == $area->id ? 'selected' : '' }}>

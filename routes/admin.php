@@ -208,6 +208,7 @@ Route::group(['as' => 'admin.', 'prefix' => 'admin', 'middleware' => ['admin_per
     // Sales
     Route::resource('/sales', SalesController::class);
     Route::get('/sales-invoice/{id}', [SalesController::class, 'invoice'])->name('sales.invoice');
+    Route::get('/sales-delivery/{id}', [SalesController::class, 'delivery'])->name('sales.delivery');
     Route::get('/sales-vat/{id}', [SalesController::class, 'vat'])->name('sales.vat');
     Route::get('/search-edit', [SalesController::class, 'searchEdit'])->name('sales.search-edit');
     Route::resource('/pos-sales', PosSalesController::class);

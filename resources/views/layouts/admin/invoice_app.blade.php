@@ -162,6 +162,18 @@
                         </div>
                     </div>
                 </td>
+                <td>
+                    <div class="heading-area">
+                        <div class="heading text-right mb-3">
+                            <h3 class="heading-title">{{ $setting->title }}</h3>
+                            <h4 class="heading-info">
+                                {{$setting->address}}<br>
+                                {{$setting->primary_mobile}}<br>
+                                {{$setting->primary_email}}
+                            </h4>
+                        </div>
+                    </div>
+                </td>
             </tr>
         </table>
         <h4 class="report-title mb-2 headbg">{{ $report_title }}</h4>
