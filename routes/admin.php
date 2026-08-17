@@ -194,6 +194,15 @@ Route::group(['as' => 'admin.', 'prefix' => 'admin', 'middleware' => ['admin_per
 
     // Lifting Product
     Route::resource('/lifting', LiftingController::class);
+    Route::get('/received-list', [LiftingController::class, 'receivedList'])->name('received.list');
+    Route::get('/receive-pending-list', [LiftingController::class, 'receivePendingList'])->name('receive.pending.list');
+
+    Route::get('/receive-edit/{vendorid}', [LiftingController::class, 'receiveEdit'])->name('purchase.receive.edit');
+    Route::put('/receive-update/{vendorid}', [LiftingController::class, 'receiveUpdate'])->name('purchase.receive.update');
+    Route::get('/print-receive/{vendorid}', [LiftingController::class, 'receivePrint'])->name('print.receive');
+    Route::get('/receive-pending-details/{vendorid}', [LiftingController::class, 'receivePendingDetails'])->name('pending.details');
+
+
     Route::get('/lifting-document/{id}', [LiftingController::class, 'showDocument'])->name('lifting-document.show');
 
     // Lifting Fashion Product

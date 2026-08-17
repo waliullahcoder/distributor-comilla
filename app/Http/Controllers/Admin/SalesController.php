@@ -1013,29 +1013,6 @@ class SalesController extends Controller
                     ]);
             }
 
-            // New delivery rows
-            // foreach ($request->new_sale_id ?? [] as $key => $saleId) {
-
-            //     if (
-            //         empty($request->new_product_id[$key]) ||
-            //         empty($request->new_delivery_qty[$key]) ||
-            //         $request->new_delivery_qty[$key] <= 0
-            //     ) {
-            //         continue;
-            //     }
-
-            //     DB::table('sale_deliveries')->insert([
-            //         'client_id'     => $clientid,
-            //         'sales_id'       => $saleId,
-            //         'product_id'    => $request->new_product_id[$key],
-            //         'delivery'  => $request->new_delivery_qty[$key],
-            //         // 'delivery_date' => $request->new_delivery_date[$key] ?? date('Y-m-d'),
-            //         'remarks'       => $request->new_remarks[$key] ?? null,
-            //         'created_at'    => now(),
-            //         'updated_at'    => now(),
-            //     ]);
-            // }
-
             DB::commit();
 
             return redirect()
