@@ -57,7 +57,7 @@
                         <td class="text-end">{{ number_format(($row->total_qty-$row->total_delivery),2) }}</td>
                         <td style="width:20%">
                             <a class="btn btn-sm btn-primary" href="{{Route('admin.sales.delivery.edit', $row->id)}}" target="_blank"  title="Delivery"><i class="fal fa-edit"></i> Delivery</a>
-                            <a class="btn btn-sm btn-warning" href="" target="_blank"  title="Delivery"><i class="fal fa-truck"></i> Print</a>
+                            <a class="btn btn-sm btn-warning" href="{{route('admin.print.delivery', $row->id)}}" target="_blank"  title="Delivery"><i class="fal fa-truck"></i> Print</a>
                         </td>
                     </tr>
                     @endforeach

@@ -157,7 +157,7 @@
                 <td>
                     <div class="heading-area">
                         <div class="heading text-right mb-3">
-                            <h3 class="heading-title">{{ $title }}</h3>
+                            <h3 class="heading-title">{{ $title }} </h3>
                             <h4 class="heading-info">{!! $informations !!}</h4>
                         </div>
                     </div>
@@ -165,7 +165,7 @@
                 <td>
                     <div class="heading-area">
                         <div class="heading text-right mb-3">
-                            <h3 class="heading-title">{{ $setting->title }}</h3>
+                            <h3 class="heading-title">{{ $setting->title }} w</h3>
                             <h4 class="heading-info">
                                 {{$setting->address}}<br>
                                 {{$setting->primary_mobile}}<br>

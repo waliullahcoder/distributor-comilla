@@ -215,7 +215,7 @@ Route::group(['as' => 'admin.', 'prefix' => 'admin', 'middleware' => ['admin_per
     Route::get('/sales-delivery', [SalesController::class, 'deliveryList'])->name('delivery.list');
     Route::get('/delivery-edit/{clientid}', [SalesController::class, 'deliveryEdit'])->name('sales.delivery.edit');
     Route::put('/delivery-update/{clientid}', [SalesController::class, 'deliveryUpdate'])->name('sales.delivery.update');
-    Route::get('/print-delivery/{id}', [SalesController::class, 'deliveryPrint'])->name('print.delivery');
+    Route::get('/print-delivery/{clientid}', [SalesController::class, 'deliveryPrint'])->name('print.delivery');
     Route::get('/pending-delivery', [SalesController::class, 'deliveryPending'])->name('delivery.pending');
 
     // Running Sales

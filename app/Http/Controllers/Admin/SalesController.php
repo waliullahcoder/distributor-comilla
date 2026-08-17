@@ -172,6 +172,164 @@ class SalesController extends Controller
         );
     }
 
+    public function deliveryPrint(string $clientid)
+    {
+        // Client-এর সব invoice
+        $sales = Sales::where('client_id', $clientid)
+            ->orderBy('id', 'desc')
+            ->get();
+
+        if ($sales->isEmpty()) {
+            abort(404, 'No sales found for this client.');
+        }
+
+        // Client
+        $client = $sales->first()->client;
+
+        // Vendor / Company info
+        $vendor = $sales->first()->vendor;
+// dd($sales->first(),$clientid);
+        if ($vendor) {
+            $company = $vendor->name;
+            $hotline = $vendor->phone;
+            $logo = $vendor->logo;
+            $title = $vendor->name;
+
+            $informations = $vendor->address . '</br>' .
+                $vendor->phone . ', ' .
+                $vendor->email . ', ' .
+                $vendor->contact_person;
+        } else {
+            $logo = null;
+            $hotline = '01xxxxx-xxxxx';
+            $title = 'Company Name Goes Here.';
+            $informations = 'Company address will goes here </br>
+                Mobile: 0967XXXXXX, Email: youremail@gmail.com, www.website.com';
+        }
+
+        /*
+        |--------------------------------------------------------------------------
+        | Client-এর সব Sales List
+        |--------------------------------------------------------------------------
+        */
+        $lists = SalesList::with('product')
+            ->where('client_id', $clientid)
+            ->whereColumn('delivery', '<', 'qty')
+            ->orderBy('id', 'asc')
+            ->get();
+
+        /*
+        |--------------------------------------------------------------------------
+        | Client-wise Delivery Amount
+        |--------------------------------------------------------------------------
+        */
+        $client_total_delivery_amount = SalesList::where('client_id', $clientid)
+            ->sum(DB::raw('delivery * rate'));
+
+        /*
+        |--------------------------------------------------------------------------
+        | Client-wise Discount
+        |--------------------------------------------------------------------------
+        */
+        $total_discount_amount = SalesList::where('client_id', $clientid)
+            ->sum('discount');
+
+        /*
+        |--------------------------------------------------------------------------
+        | Client-এর Total Sales Amount
+        |--------------------------------------------------------------------------
+        */
+        $client_total_amount = SalesList::where('client_id', $clientid)
+            ->sum(DB::raw('qty * rate'));
+
+        /*
+        |--------------------------------------------------------------------------
+        | Total Paid Amount
+        |--------------------------------------------------------------------------
+        */
+        $total_paid_amount = Collection::where('client_id', $clientid)
+            ->where('collection_type', '!=', 'adjust')
+            ->sum('amount');
+
+        /*
+        |--------------------------------------------------------------------------
+        | Opening Balance
+        |--------------------------------------------------------------------------
+        |
+        | Previous payment বাদ দিয়ে client-এর total delivery amount
+        |
+        */
+        $opening = $client_total_delivery_amount
+            - $total_discount_amount
+            - $total_paid_amount;
+
+        /*
+        |--------------------------------------------------------------------------
+        | Latest / Main Data Object
+        |--------------------------------------------------------------------------
+        |
+        | Blade-এর existing structure ঠিক রাখার জন্য
+        | প্রথম Sales object-এর সাথে client-wise list attach করছি।
+        |
+        */
+        $data = $sales->first();
+
+        $data->list = $lists;
+
+        $data->client = $client;
+
+        /*
+        |--------------------------------------------------------------------------
+        | Client-wise total delivery
+        |--------------------------------------------------------------------------
+        */
+        $data->total_delivery_amount = $client_total_delivery_amount;
+
+        /*
+        |--------------------------------------------------------------------------
+        | Client-wise total quantity
+        |--------------------------------------------------------------------------
+        */
+        $data->total_qty = SalesList::where('client_id', $clientid)
+            ->sum('qty');
+
+        /*
+        |--------------------------------------------------------------------------
+        | Client-wise total delivered quantity
+        |--------------------------------------------------------------------------
+        */
+        $data->total_delivery_qty = SalesList::where('client_id', $clientid)
+            ->sum('delivery');
+
+        /*
+        |--------------------------------------------------------------------------
+        | Client-wise pending quantity
+        |--------------------------------------------------------------------------
+        */
+        $data->total_pending_qty = $data->total_qty - $data->total_delivery_qty;
+
+        $data->invoice = 'CLIENT-WISE DELIVERY HISTORY';
+        $data->date = $sales->max('date');
+        $data->updated_at = $sales->max('updated_at');
+
+        $report_title = 'Delivery';
+
+        return view(
+            'admin.sales-delivery.deliveryPrint',
+            compact(
+                'title',
+                'total_discount_amount',
+                'logo',
+                'informations',
+                'hotline',
+                'report_title',
+                'data',
+                'opening',
+                'client_total_delivery_amount'
+            )
+        );
+    }
+
     public function deliveryPending(Request $request)
     {
         $title = "Delivery Pending";
@@ -695,35 +853,7 @@ class SalesController extends Controller
         // $pdf->setPaper('A4', 'landscape');
         return $pdf->stream('sales_invoice_' . date('d_m_Y_H_i_s') . '.pdf');
     }
-     public function deliveryPrint(string $id)
-    {
-        $data = Sales::findOrFail($id);
-        if ($data) {
-            $company = $data->vendor->name;
-            $hotline = $data->vendor->phone;
-            $logo = $data->vendor->logo;
-            $title = $data->vendor->name;
-            $informations = $data->vendor->address . '</br>' . $data->vendor->phone . ', ' . $data->vendor->email . ', ' . $data->vendor->contact_person;
-
-        } else {
-            $logo = NULL;
-            $hotline = '01xxxxx-xxxxx';
-            $title = 'Company Name Goes Here.';
-            $informations = 'Company address will goes here </br> Mobile: 0967XXXXXX, Email: youremail@gmail.com, www.website.com';
-        }
-       
-        $client_total_delivery_amount = Sales::where('id', $id)->where('client_id', $data->client_id)->sum('total_delivery_amount');
-        $total_discount_amount = SalesList::where('sales_id', $id)->where('client_id', $data->client_id)->sum('discount');
-        $total_paid_amount = Collection::where('client_id', $data->client_id)->where('payment_no', '!=', $data->invoice)->where('collection_type', '!=', 'adjust')->sum('amount');
-        $opening = $client_total_delivery_amount - ($total_discount_amount + $total_paid_amount);
-
-        $report_title = 'Delivery';
-        
-         return view('admin.sales.delivery', compact('title','total_discount_amount', 'logo', 'informations', 'hotline', 'report_title', 'data', 'opening','client_total_delivery_amount'));
-        // $pdf = Pdf::loadView('admin.sales.invoice', compact('title', 'logo', 'informations', 'hotline', 'report_title', 'data', 'opening'));
-        // $pdf->setPaper('A4', 'landscape');
-        return $pdf->stream('sales_invoice_' . date('d_m_Y_H_i_s') . '.pdf');
-    }
+     
 
     /**
      * Display the specified resource.
