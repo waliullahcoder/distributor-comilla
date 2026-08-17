@@ -38,9 +38,9 @@
                     <th class="text-center" width="20px">Sl#</th>
                     <th width="100px">Date</th>
                     <th width="100px">Client</th>
-                    <th class="text-end" width="100px">Sales Qty</th>
+                    <th class="text-end" width="100px">Order Qty</th>
                     <th class="text-end" width="100px">Delivery Qty</th>
-                    <th class="text-end" width="100px">Pending Qty</th>
+                    <!-- <th class="text-end" width="100px">Pending Qty</th> -->
                     <th class="text-end" width="100px">Action</th>
                 </tr>
             </thead>
@@ -54,10 +54,12 @@
                         <td>{{ $row->name }}</td>
                         <td class="text-end">{{ number_format($row->total_qty,2) }}</td>
                         <td class="text-end">{{ number_format($row->total_delivery,2) }}</td>
-                        <td class="text-end">{{ number_format(($row->total_qty-$row->total_delivery),2) }}</td>
+                        <!-- <td class="text-end">{{ number_format(($row->total_qty-$row->total_delivery),2) }}</td> -->
                         <td style="width:20%">
-                            <a class="btn btn-sm btn-primary" href="{{Route('admin.sales.delivery.edit', $row->id)}}" target="_blank"  title="Delivery"><i class="fal fa-edit"></i> Delivery</a>
+                            <a class="btn btn-sm btn-primary" href="{{Route('admin.sales.delivery.edit', $row->id)}}" title="Delivery"><i class="fal fa-edit"></i> Delivery</a>
+                            @if($row->total_delivery>0)
                             <a class="btn btn-sm btn-warning" href="{{route('admin.print.delivery', $row->id)}}" target="_blank"  title="Delivery"><i class="fal fa-truck"></i> Print</a>
+                            @endif
                         </td>
                     </tr>
                     @endforeach
@@ -68,7 +70,7 @@
                         <th colspan="3" class="text-end">Grand Total</th>
                         <th class="text-end">{{ number_format($grand_total_qty,2) }}</th>
                         <th class="text-end">{{ number_format($grand_total_delivery,2) }}</th>
-                        <th class="text-end">{{ number_format(($grand_total_qty-$grand_total_delivery),2) }}</th>
+                        <!-- <th class="text-end">{{ number_format(($grand_total_qty-$grand_total_delivery),2) }}</th> -->
                         <th class="text-end"></th>
                     </tr>
                     </tfoot>

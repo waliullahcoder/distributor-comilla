@@ -328,6 +328,56 @@ class SalesController extends Controller
         );
     }
 
+    
+     public function pendingDetails(string $clientid)
+    {
+        $client = DB::table('clients')
+            ->where('id', $clientid)
+            ->first();
+
+        if (!$client) {
+            return redirect()->back()->with('error', 'Client not found.');
+        }
+
+        // Client wise invoice/sales
+        $sales = DB::table('sales as s')
+            ->leftJoin('clients as c', 'c.id', '=', 's.client_id')
+            ->where('s.client_id', $clientid)
+            ->select(
+                's.id',
+                's.invoice',
+                's.date',
+                's.client_id',
+                'c.name as client_name'
+            )
+            ->orderBy('s.date', 'desc')
+            ->get();
+
+        // Client wise delivery
+        $deliveries = DB::table('sales_lists as sl')
+            ->leftJoin('products as p', 'p.id', '=', 'sl.product_id')
+            ->leftJoin('sales as s', 's.id', '=', 'sl.sales_id')
+            ->where('sl.client_id', $clientid)
+            ->whereColumn('sl.delivery', '<>', 'sl.qty')
+            ->select(
+                'sl.*',
+                's.invoice',
+                's.date as invoice_date',
+                'p.name as product_name',
+                'p.code as product_code',
+                'p.id as product_id'
+            )
+            ->orderBy('s.date', 'desc')
+            ->get()
+            ->groupBy('sales_id');
+
+        return view('admin.sales-delivery.pendingDetails', compact(
+            'client',
+            'sales',
+            'deliveries'
+        ));
+    }
+
     public function deliveryPending(Request $request)
     {
         $title = "Delivery Pending";

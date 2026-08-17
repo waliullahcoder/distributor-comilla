@@ -38,9 +38,10 @@
                     <th class="text-center" width="20px">Sl#</th>
                     <th width="100px">Date</th>
                     <th width="100px">Client</th>
-                    <th class="text-end" width="100px">Sales Qty</th>
-                    <th class="text-end" width="100px">Delivery Qty</th>
-                    <th class="text-end" width="100px">Due Qty</th>
+                    <!-- <th class="text-end" width="100px">Sales Qty</th>
+                    <th class="text-end" width="100px">Delivery Qty</th> -->
+                    <th class="text-end" width="100px">Pending Qty</th>
+                    <th class="text-end" width="100px">Action</th>
                 </tr>
             </thead>
            
@@ -51,9 +52,12 @@
                         <td>{{ $loop->iteration }}</td>
                         <td style="width:33%">{{ \Carbon\Carbon::parse($row->sale_date)->format('F j, Y h:i A') }}</td>
                         <td>{{ $row->name }}</td>
-                        <td class="text-end">{{ number_format($row->total_qty,2) }}</td>
-                        <td class="text-end">{{ number_format($row->total_delivery,2) }}</td>
+                        <!-- <td class="text-end">{{ number_format($row->total_qty,2) }}</td>
+                        <td class="text-end">{{ number_format($row->total_delivery,2) }}</td> -->
                         <td class="text-end">{{ number_format(($row->total_qty-$row->total_delivery),2) }}</td>
+                        <td style="width:20%">
+                            <a class="btn btn-sm btn-primary" href="{{Route('admin.pending.details', $row->id)}}" title="Delivery"><i class="fal fa-info"></i> Details</a>
+                        </td>
                     </tr>
                     @endforeach
                     </tbody>
@@ -61,9 +65,10 @@
                     <tfoot>
                     <tr>
                         <th colspan="3" class="text-end">Grand Total</th>
-                        <th class="text-end">{{ number_format($grand_total_qty,2) }}</th>
-                        <th class="text-end">{{ number_format($grand_total_delivery,2) }}</th>
+                        <!-- <th class="text-end">{{ number_format($grand_total_qty,2) }}</th>
+                        <th class="text-end">{{ number_format($grand_total_delivery,2) }}</th> -->
                         <th class="text-end">{{ number_format(($grand_total_qty-$grand_total_delivery),2) }}</th>
+                        <th class="text-end"></th>
                     </tr>
                     </tfoot>
             @endif

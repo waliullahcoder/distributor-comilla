@@ -217,6 +217,8 @@ Route::group(['as' => 'admin.', 'prefix' => 'admin', 'middleware' => ['admin_per
     Route::put('/delivery-update/{clientid}', [SalesController::class, 'deliveryUpdate'])->name('sales.delivery.update');
     Route::get('/print-delivery/{clientid}', [SalesController::class, 'deliveryPrint'])->name('print.delivery');
     Route::get('/pending-delivery', [SalesController::class, 'deliveryPending'])->name('delivery.pending');
+    Route::get('/pending-details/{clientid}', [SalesController::class, 'pendingDetails'])->name('pending.details');
+    
 
     // Running Sales
     Route::resource('/running-sales', RunningSalesController::class);
