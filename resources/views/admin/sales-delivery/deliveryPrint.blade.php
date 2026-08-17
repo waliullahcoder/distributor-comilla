@@ -151,7 +151,7 @@
         </tr>
 
         <tr>
-            <td>
+            <td colspan="2">
                 <b class="d-inline-block" style="min-width: 100px;">
                     Region :
                 </b>
@@ -160,13 +160,17 @@
                     {{ @$data->client->area
                         ? $data->client->area->region->name
                         : '-' }},
+                        {{ @$data->client->area
+                        ? $data->client->area->region->incharge_name
+                        : '-' }},
                     {{ @$data->client->area
                         ? $data->client->area->region->phone
                         : '-' }}
+                        
                 </span>
             </td>
 
-            <td class="text-right">
+            <!-- <td class="text-right">
                 <b class="d-inline-block text-left">
                     Invoice Date :
                 </b>
@@ -174,7 +178,7 @@
                 <span class="d-inline-block" style="min-width: 130px;">
                     {{ date('d-m-Y', strtotime($data->date)) }}
                 </span>
-            </td>
+            </td> -->
         </tr>
     </table>
 
@@ -203,6 +207,12 @@
 
                 <th width="70">
                     Product Code
+                </th>
+                <th width="70">
+                   Invoice No.
+                </th>
+                <th width="70">
+                    Invoice Date
                 </th>
 
                 <th width="70">
@@ -233,17 +243,17 @@
 
 
                     {{-- PRODUCT DETAILS --}}
-                    <td>
+                    <td style="width:30%">
 
                         {{-- Invoice Number --}}
-                        <small>
+                        <!-- <small>
                             Invoice No :
                             <b>
-                                {{ @$item->sales->invoice }}
+                                {{ @$item->sales->invoice }} , Invoice Date: {{ @$item->sales->date }}
                             </b>
                         </small>
 
-                        <br>
+                        <br> -->
 
                         {{ @$item->product->name }}
 
@@ -304,9 +314,7 @@
                         @endif
 
                     </td>
-
-
-                    {{-- VARIANT --}}
+                      {{-- VARIANT --}}
                     @if($data->product_type != 'Consumer')
 
                         <td width="50">
@@ -324,6 +332,11 @@
                         {{ @$item->product->code }}
 
                     </td>
+                    <td>{{ @$item->sales->invoice }}</td>
+                    <td>{{ @$item->sales->date }}</td>
+
+
+                  
 
 
                     {{-- DELIVERY --}}
@@ -391,7 +404,7 @@
                 </td>
 
 
-                <td class="text-right" colspan="3">
+                <td class="text-right" colspan="5">
 
                     <b>
                         Total Delivery Amount :
@@ -418,7 +431,7 @@
 
                 <tr>
 
-                    <td class="text-right" colspan="3">
+                    <td class="text-right" colspan="5">
 
                         <b>
                             Discount Amount :
@@ -444,7 +457,7 @@
 
             <tr>
 
-                <td class="text-right" colspan="3">
+                <td class="text-right" colspan="5">
 
                     <b>
                         Net Invoice Amount :
@@ -484,40 +497,33 @@
                 <td colspan="2" rowspan="3">
 
                     {{-- TOTAL DELIVERY --}}
-                    <b>
-                        Total Delivery :
-                    </b>
 
-                    <br>
+                    @php
+                        $deliverySummary = $data->list->groupBy('product_id')->map(function ($items) {
+                            return [
+                                'product_name' => @$items->first()->product->name,
+                                'delivery' => $items->sum('delivery'),
+                                'pending' => $items->sum(function ($item) {
+                                    return $item->qty - $item->delivery;
+                                }),
+                            ];
+                        });
+                    @endphp
 
-                    @foreach ($data->list as $item)
+                    <b>Total Delivery :</b><br>
 
-                        {{ @$item->product->name }}
-                        :
-                        {{ @$item->delivery }}
-                        CTN
-
+                    @foreach ($deliverySummary as $item)
+                        {{ $item['product_name'] }} : {{ $item['delivery'] }} CTN
                         <br>
-
                     @endforeach
 
 
                     {{-- TOTAL PENDING --}}
-                    <b>
-                        Total Pending :
-                    </b>
+                    <b>Total Pending :</b><br>
 
-                    <br>
-
-                    @foreach ($data->list as $item)
-
-                        {{ @$item->product->name }}
-                        :
-                        {{ $item->qty - $item->delivery }}
-                        CTN
-
+                    @foreach ($deliverySummary as $item)
+                        {{ $item['product_name'] }} : {{ $item['pending'] }} CTN
                         <br>
-
                     @endforeach
 
                 </td>

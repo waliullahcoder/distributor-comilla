@@ -83,8 +83,6 @@ class SalesController extends Controller
                     $addiotional_buttons = '';
                     $addiotional_buttons .= '<a class="btn btn-sm border-0 px-10px fs-15 text-white tt btn-print-1" href="' . Route('admin.sales.show', $row->id) . '" target="_blank"  data-bs-toggle="tooltip" data-bs-placement="top" title="Chalan"><i class="fal fa-print"></i></a>';
                     $addiotional_buttons .= '<a class="btn btn-sm border-0 px-10px fs-15 text-white tt btn-print-2" href="' . Route('admin.sales.invoice', $row->id) . '" target="_blank"  data-bs-toggle="tooltip" data-bs-placement="top" title="Invoice"><i class="fal fa-file-pdf"></i></a>';
-
-                    $addiotional_buttons .= '<a class="btn btn-sm border-0 px-10px fs-15 text-white tt btn-print-1" href="' . Route('admin.sales.delivery', $row->id) . '" target="_blank"  data-bs-toggle="tooltip" data-bs-placement="top" title="Delivery"><i class="fal fa-truck"></i></a>';
                     if (@$row->client->is_vat == 1) {
                         $addiotional_buttons .= '<a class="btn btn-sm border-0 px-10px fs-15 text-white tt btn-print-3" href="' . Route('admin.sales.vat', $row->id) . '" target="_blank"  data-bs-toggle="tooltip" data-bs-placement="top" title="Vat Chalan"><i class="fal fa-print-search"></i></a>';
                     }
@@ -214,7 +212,7 @@ class SalesController extends Controller
         */
         $lists = SalesList::with('product')
             ->where('client_id', $clientid)
-            ->whereColumn('delivery', '<', 'qty')
+            ->where('delivery', '>', 0)
             ->orderBy('id', 'asc')
             ->get();
 
