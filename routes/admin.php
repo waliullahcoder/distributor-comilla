@@ -208,10 +208,15 @@ Route::group(['as' => 'admin.', 'prefix' => 'admin', 'middleware' => ['admin_per
     // Sales
     Route::resource('/sales', SalesController::class);
     Route::get('/sales-invoice/{id}', [SalesController::class, 'invoice'])->name('sales.invoice');
-    Route::get('/sales-delivery/{id}', [SalesController::class, 'delivery'])->name('sales.delivery');
     Route::get('/sales-vat/{id}', [SalesController::class, 'vat'])->name('sales.vat');
     Route::get('/search-edit', [SalesController::class, 'searchEdit'])->name('sales.search-edit');
     Route::resource('/pos-sales', PosSalesController::class);
+
+    Route::get('/sales-delivery', [SalesController::class, 'deliveryList'])->name('delivery.list');
+    Route::get('/delivery-edit/{clientid}', [SalesController::class, 'deliveryEdit'])->name('sales.delivery.edit');
+    Route::put('/delivery-update/{clientid}', [SalesController::class, 'deliveryUpdate'])->name('sales.delivery.update');
+    Route::get('/print-delivery/{id}', [SalesController::class, 'deliveryPrint'])->name('print.delivery');
+    Route::get('/pending-delivery', [SalesController::class, 'deliveryPending'])->name('delivery.pending');
 
     // Running Sales
     Route::resource('/running-sales', RunningSalesController::class);

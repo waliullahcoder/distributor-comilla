@@ -114,6 +114,122 @@ class SalesController extends Controller
         return view('admin.sales.index', compact('title', 'params'));
     }
 
+    public function deliveryList(Request $request)
+    {
+        $title = "Delivery";
+        $filter_link = Route('admin.delivery.list');
+
+        $date_range = explode('to', $request->date_range);
+        $start_date = isset($date_range[0]) ? date('Y-m-d', strtotime(trim($date_range[0]))) : null;
+        $end_date   = isset($date_range[1]) ? date('Y-m-d', strtotime(trim($date_range[1]))) : null;
+
+        $client_id = $request->client_id;
+
+        $clients = Client::where('status', 1)
+            ->orderBy('name', 'asc')
+            ->get();
+
+        $query = DB::table('clients as cl')
+            ->leftJoin('sales_lists as sl', 'cl.id', '=', 'sl.client_id')
+            ->select(
+                'cl.id',
+                'cl.name',
+                DB::raw('MAX(sl.created_at) as sale_date'),
+                DB::raw('SUM(sl.qty) as total_qty'),
+                DB::raw('SUM(sl.delivery) as total_delivery')
+            );
+
+        if (!empty($request->client_id)) {
+            $query->where('cl.id', $request->client_id);
+        }
+
+        if (!empty($start_date) && !empty($end_date)) {
+            $query->whereBetween(DB::raw('DATE(sl.created_at)'), [$start_date, $end_date]);
+        }
+
+        $data = $query
+            ->groupBy('cl.id', 'cl.name')
+            ->orderBy('cl.name')
+            ->get();
+
+        // Grand Total
+        $grand_total_qty = $data->sum('total_qty');
+        $grand_total_delivery = $data->sum('total_delivery');
+
+        return view(
+            'admin.sales-delivery.deliveryList',
+            compact(
+                'title',
+                'filter_link',
+                'clients',
+                'data',
+                'start_date',
+                'end_date',
+                'client_id',
+                'grand_total_qty',
+                'grand_total_delivery'
+            )
+        );
+    }
+
+    public function deliveryPending(Request $request)
+    {
+        $title = "Delivery Pending";
+        $filter_link = Route('admin.delivery.list');
+
+        $date_range = explode('to', $request->date_range);
+        $start_date = isset($date_range[0]) ? date('Y-m-d', strtotime(trim($date_range[0]))) : null;
+        $end_date   = isset($date_range[1]) ? date('Y-m-d', strtotime(trim($date_range[1]))) : null;
+
+        $client_id = $request->client_id;
+
+        $clients = Client::where('status', 1)
+            ->orderBy('name', 'asc')
+            ->get();
+
+        $query = DB::table('clients as cl')
+            ->leftJoin('sales_lists as sl', 'cl.id', '=', 'sl.client_id')
+            ->select(
+                'cl.id',
+                'cl.name',
+                DB::raw('MAX(sl.created_at) as sale_date'),
+                DB::raw('SUM(sl.qty) as total_qty'),
+                DB::raw('SUM(sl.delivery) as total_delivery')
+            );
+
+        if (!empty($request->client_id)) {
+            $query->where('cl.id', $request->client_id);
+        }
+
+        if (!empty($start_date) && !empty($end_date)) {
+            $query->whereBetween(DB::raw('DATE(sl.created_at)'), [$start_date, $end_date]);
+        }
+
+        $data = $query
+            ->groupBy('cl.id', 'cl.name')
+            ->orderBy('cl.name')
+            ->get();
+
+        // Grand Total
+        $grand_total_qty = $data->sum('total_qty');
+        $grand_total_delivery = $data->sum('total_delivery');
+
+        return view(
+            'admin.sales-delivery.pending',
+            compact(
+                'title',
+                'filter_link',
+                'clients',
+                'data',
+                'start_date',
+                'end_date',
+                'client_id',
+                'grand_total_qty',
+                'grand_total_delivery'
+            )
+        );
+    }
+
     public function getOrderNo()
     {
         $first = date('Y-m-01');
@@ -579,7 +695,7 @@ class SalesController extends Controller
         // $pdf->setPaper('A4', 'landscape');
         return $pdf->stream('sales_invoice_' . date('d_m_Y_H_i_s') . '.pdf');
     }
-     public function delivery(string $id)
+     public function deliveryPrint(string $id)
     {
         $data = Sales::findOrFail($id);
         if ($data) {
@@ -632,7 +748,132 @@ class SalesController extends Controller
         $pdf->setPaper('A4');
         return $pdf->stream('sales_invoice_' . date('d_m_Y_H_i_s') . '.pdf');
     }
+   public function deliveryEdit(string $clientid)
+    {
+        $client = DB::table('clients')
+            ->where('id', $clientid)
+            ->first();
 
+        if (!$client) {
+            return redirect()->back()->with('error', 'Client not found.');
+        }
+
+        // Client wise invoice/sales
+        $sales = DB::table('sales as s')
+            ->leftJoin('clients as c', 'c.id', '=', 's.client_id')
+            ->where('s.client_id', $clientid)
+            ->select(
+                's.id',
+                's.invoice',
+                's.date',
+                's.client_id',
+                'c.name as client_name'
+            )
+            ->orderBy('s.date', 'desc')
+            ->get();
+
+        // Client wise delivery
+        $deliveries = DB::table('sales_lists as sl')
+            ->leftJoin('products as p', 'p.id', '=', 'sl.product_id')
+            ->leftJoin('sales as s', 's.id', '=', 'sl.sales_id')
+            ->where('sl.client_id', $clientid)
+            ->whereColumn('sl.delivery', '<>', 'sl.qty')
+            ->select(
+                'sl.*',
+                's.invoice',
+                's.date as invoice_date',
+                'p.name as product_name',
+                'p.code as product_code',
+                'p.id as product_id'
+            )
+            ->orderBy('s.date', 'desc')
+            ->get()
+            ->groupBy('sales_id');
+
+        return view('admin.sales-delivery.delivery_edit', compact(
+            'client',
+            'sales',
+            'deliveries'
+        ));
+    }
+
+    public function deliveryUpdate(Request $request, string $clientid)
+    {
+        DB::beginTransaction();
+
+        try {
+                $total_delivery_amount=0;
+            foreach ($request->delivery_id ?? [] as $key => $deliveryId) {
+
+                       $product = Product::find($request->product_id[$key]);
+                        $tradediscount= 0;
+                        if($product->type==1){
+                            $offerqty=0;
+                            $freeqty=0;
+                            $offer_subtotal=0;
+                            $freeqty= floor($request->qty[$key]/(int)$product->do_ratio) ;
+                            $offerqty = $request->qty[$key]-$freeqty;
+                            $offer_subtotal=$offerqty*$request->rate[$key];
+                           $tradediscount=$freeqty*$request->rate[$key];
+                        }
+
+                $deliveryQty = $request->delivery_qty[$key] ?? 0;
+                
+                $delivery = $request->delivery[$key] ?? 0;
+                $rate = $request->rate[$key] ?? 0;
+
+                    $total_delivery_amount += $delivery * $rate;
+
+                DB::table('sales_lists')
+                    ->where('id', $deliveryId)
+                    ->where('client_id', $clientid)
+                    ->update([
+                        'delivery' => $deliveryQty,
+                        'delivery_amount' => $total_delivery_amount,
+                        'discount' => $tradediscount,
+                        'updated_at' => now(),
+                    ]);
+            }
+
+            // New delivery rows
+            // foreach ($request->new_sale_id ?? [] as $key => $saleId) {
+
+            //     if (
+            //         empty($request->new_product_id[$key]) ||
+            //         empty($request->new_delivery_qty[$key]) ||
+            //         $request->new_delivery_qty[$key] <= 0
+            //     ) {
+            //         continue;
+            //     }
+
+            //     DB::table('sale_deliveries')->insert([
+            //         'client_id'     => $clientid,
+            //         'sales_id'       => $saleId,
+            //         'product_id'    => $request->new_product_id[$key],
+            //         'delivery'  => $request->new_delivery_qty[$key],
+            //         // 'delivery_date' => $request->new_delivery_date[$key] ?? date('Y-m-d'),
+            //         'remarks'       => $request->new_remarks[$key] ?? null,
+            //         'created_at'    => now(),
+            //         'updated_at'    => now(),
+            //     ]);
+            // }
+
+            DB::commit();
+
+            return redirect()
+                ->route('admin.delivery.list')
+                ->withSuccessMessage('Client delivery updated successfully.');
+
+        } catch (\Exception $e) {
+
+            DB::rollBack();
+
+            return redirect()
+                ->back()
+                ->withInput()
+                ->with('error', $e->getMessage());
+        }
+    }
     /**
      * Show the form for editing the specified resource.
      */
