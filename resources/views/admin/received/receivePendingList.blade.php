@@ -56,7 +56,7 @@
                         <td class="text-end">{{ number_format($row->total_qty-$row->total_delivery,2) }}</td>
                         <!-- <td class="text-end">{{ number_format(($row->total_qty-$row->total_delivery),2) }}</td> -->
                         <td style="width:10%">
-                            <a class="btn btn-sm btn-primary" href="{{Route('admin.sales.delivery.edit', $row->id)}}" title="receive"><i class="fal fa-info"></i> Details</a>
+                            <a class="btn btn-sm btn-primary" href="{{Route('admin.receive.pending.details', $row->id)}}" title="receive"><i class="fal fa-info"></i> Details</a>
                            
                         </td>
                     </tr>

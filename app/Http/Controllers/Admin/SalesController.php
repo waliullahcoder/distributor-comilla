@@ -639,6 +639,7 @@ class SalesController extends Controller
                     'date' => date('Y-m-d', strtotime($request->date)),
                     'sales_type' => $request->sales_type,
                     'total_amount' => $total_amount,
+                    'total_delivery_amount' => 0,
                     'discount' => $request->discount,
                     'total_paid' => $request->sales_type == 'cash' ? $request->net_payable : 0,
                     'created_by' => Auth::user()->id,
@@ -677,9 +678,11 @@ class SalesController extends Controller
                             'client_id' => $request->client_id,
                             'product_id' => $product_id,
                             'order_product_id' => $request->order_product_id[$key],
+                            'do_ratio' => $product->do_ratio,
                             'rate' => $request->rate[$key],
                             'qty' => $request->qty[$key],
                             'amount' => $request->amount[$key],
+                            'delivery_amount' => 0,
                             'discount' => $discount+$tradediscount,
                             'collection' => $request->sales_type == 'cash' ? ($request->amount[$key] - $discount) : 0.00,
                         ]);
@@ -801,8 +804,9 @@ class SalesController extends Controller
                 ]);
             });
         } catch (Throwable $caught) {
+            dd($caught);
             if ($caught) {
-                return redirect()->back()->withErrors('Stock not available!');
+                return redirect()->back()->withErrors('Something went wrong cought!');
             }
         }
         return redirect()->route('admin.sales.index')->withSuccessMessage('Created Successfully!');

@@ -200,7 +200,7 @@ Route::group(['as' => 'admin.', 'prefix' => 'admin', 'middleware' => ['admin_per
     Route::get('/receive-edit/{vendorid}', [LiftingController::class, 'receiveEdit'])->name('purchase.receive.edit');
     Route::put('/receive-update/{vendorid}', [LiftingController::class, 'receiveUpdate'])->name('purchase.receive.update');
     Route::get('/print-receive/{vendorid}', [LiftingController::class, 'receivePrint'])->name('print.receive');
-    Route::get('/receive-pending-details/{vendorid}', [LiftingController::class, 'receivePendingDetails'])->name('pending.details');
+    Route::get('/receive-pending-details/{vendorid}', [LiftingController::class, 'receivePendingDetails'])->name('receive.pending.details');
 
 
     Route::get('/lifting-document/{id}', [LiftingController::class, 'showDocument'])->name('lifting-document.show');

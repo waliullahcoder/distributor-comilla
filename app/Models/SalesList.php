@@ -8,7 +8,7 @@ use Illuminate\Database\Eloquent\Model;
 class SalesList extends Model
 {
     use HasFactory;
-    protected $fillable = ['company_id', 'product_type', 'sales_id', 'store_id', 'client_id', 'product_id', 'variant_id', 'order_product_id', 'rate', 'qty', 'delivery', 'amount','delivery_amount', 'discount', 'returned_qty', 'returned_amount', 'is_return', 'delivery_status'];
+    protected $fillable = ['company_id', 'product_type', 'sales_id', 'store_id', 'client_id', 'product_id', 'variant_id', 'order_product_id', 'do_ratio', 'rate', 'qty', 'delivery', 'amount','delivery_amount', 'discount', 'returned_qty', 'returned_amount', 'is_return', 'delivery_status'];
 
     public function client()
     {

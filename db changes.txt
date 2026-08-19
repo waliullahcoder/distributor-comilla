@@ -1,0 +1,3 @@
+
+DB->sales_lists->do_ratio
+DB-> lifting_products-> do_ratio

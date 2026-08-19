@@ -407,7 +407,7 @@
                                 $offer_subtotal = 0;
 
                                 $doRatio =
-                                    (int) (@$item->product->do_ratio ?? 0);
+                                    (int) (@$item->do_ratio ?? 0);
 
 
                                 if ($doRatio > 0) {
@@ -447,7 +447,7 @@
                                 Do Ratio:
                             </b>
 
-                            {{ @$item->product->do_ratio ?? 0 }}
+                            {{ @$item->do_ratio ?? 0 }}
                             CTN : 1 CTN
 
                         @endif

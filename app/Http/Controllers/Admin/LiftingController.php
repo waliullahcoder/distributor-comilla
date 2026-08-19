@@ -194,6 +194,55 @@ class LiftingController extends Controller
         );
     }
 
+    public function receivePendingDetails(string $vendorid)
+    {
+        $vendor = DB::table('vendors')
+            ->where('id', $vendorid)
+            ->first();
+
+        if (!$vendor) {
+            return redirect()->back()->with('error', 'Vendor not found.');
+        }
+
+        // Vendor wise Purchase
+        $purchases = DB::table('liftings as l')
+            ->leftJoin('vendors as v', 'v.id', '=', 'l.vendor_id')
+            ->where('l.vendor_id', $vendorid)
+            ->select(
+                'l.id',
+                'l.lifting_no',
+                'l.lifting_date',
+                'l.vendor_id',
+                'v.name as vendor_name'
+            )
+            ->orderBy('l.lifting_date', 'desc')
+            ->get();
+
+        // Vendor wise Receives
+        $receives = DB::table('lifting_products as lp')
+            ->leftJoin('products as p', 'p.id', '=', 'lp.product_id')
+            ->leftJoin('liftings as l', 'l.id', '=', 'lp.lifting_id')
+            ->where('lp.vendor_id', $vendorid)
+            ->whereColumn('lp.delivery', '<>', 'lp.qty')
+            ->select(
+                'lp.*',
+                'l.lifting_no',
+                'l.lifting_date as purchase_date',
+                'p.name as product_name',
+                'p.code as product_code',
+                'p.id as product_id'
+            )
+            ->orderBy('l.lifting_date', 'desc')
+            ->get()
+            ->groupBy('lifting_id');
+
+        return view('admin.received.pendingDetails', compact(
+            'vendor',
+            'purchases',
+            'receives'
+        ));
+    }
+
 
     public function receiveEdit(string $vendorid)
     {
@@ -936,7 +985,9 @@ class LiftingController extends Controller
                     'net_amount' => $request->amount[$key] - $discount,
                     'expiry_date' => !is_null(@$request->expiry_date[$key]) ? date('Y-m-d', strtotime(@$request->expiry_date[$key])) : null,
                     'qty' => $request->quantity[$key],
-                    'delivery' => $request->delivery[$key],
+                    'delivery' => 0,
+                    'delivery_amount' => 0,
+                    'do_ratio' => $product->do_ratio,
                     'created_by' => Auth::user()->id,
                 ]);
                 $log_data .= ' ' . $product->name . ' ' . $request->quantity[$key] . ' ' . $product->attribute->name . ' ';

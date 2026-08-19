@@ -274,7 +274,7 @@
                                 $freeqty = 0;
                                 $offer_subtotal = 0;
 
-                                $doRatio = (int) @$item->product->do_ratio;
+                                $doRatio = (int) @$item->do_ratio;
 
                                 if ($doRatio > 0) {
 
@@ -306,7 +306,7 @@
 
 
                             <b>Do Ratio:</b>
-                            {{ @$item->product->do_ratio }}
+                            {{ @$item->do_ratio }}
                             CTN : 1 CTN
 
                             <br>
