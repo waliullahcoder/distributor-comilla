@@ -202,7 +202,7 @@
                                                     <input
                                                         type="hidden"
                                                         name="rate[]"
-                                                        value="{{ $receive->rate ?? 0 }}">
+                                                        value="{{ $receive->lifting_price ?? 0 }}">
 
 
                                                     <input

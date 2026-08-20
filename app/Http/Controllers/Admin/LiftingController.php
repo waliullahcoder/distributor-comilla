@@ -295,6 +295,8 @@ class LiftingController extends Controller
 
     public function receiveUpdate(Request $request, string $vendorid)
     {
+
+    
         DB::beginTransaction();
 
         try {
@@ -312,7 +314,7 @@ class LiftingController extends Controller
                 $qty = (float) ($request->qty[$key] ?? 0);
                 $deliveryQty = (float) ($request->delivery_qty[$key] ?? 0);
                 $rate = (float) ($product->price->lifting_price ?? 0);
-
+dd("fff",$request->all(),$qty, $deliveryQty,$rate);
                 /*
                 |--------------------------------------------------------------------------
                 | Delivery Validation
@@ -504,9 +506,11 @@ class LiftingController extends Controller
         |--------------------------------------------------------------------------
         */
 
-        $opening = $vendor_total_delivery_amount
-            - $total_discount_amount
-            - $total_paid_amount;
+        $opening = $total_paid_amount;
+
+            // dd($vendor_total_delivery_amount
+            // , $total_discount_amount
+            // , $total_paid_amount);
 
 
         /*

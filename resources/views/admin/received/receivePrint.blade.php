@@ -360,7 +360,7 @@
             @foreach ($data->list as $item)
             <?php
             
-                            $rate= $item->product->price->lifting_price;
+                            $rate= $item->lifting_price;
             ?>
 
                 <tr>
@@ -864,10 +864,7 @@
 
                 @php
 
-                    $payable =
-                        $opening
-                        + $data->total_delivery_amount
-                        - $total_discount_amount;
+                    $payable = $opening-$vendor_total_delivery_amount;
 
                 @endphp
 
