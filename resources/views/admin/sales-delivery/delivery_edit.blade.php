@@ -124,17 +124,21 @@
                                                 {{ $delivery->product_name }}
                                             </td>
                                             <td>
-                                                <span class="qty">{{ $delivery->qty }}</span>
+                                                <span class="qty">{{ $delivery->qty-$delivery->delivery }}</span>
                                             </td>
 
                                             <td>
+                                                <input
+                                                    type="hidden"
+                                                    name="prev_delivery[]"
+                                                    value="{{ $delivery->delivery }}">
                                                 <input
                                                     type="number"
                                                     step="any"
                                                     min="0"
                                                     name="delivery_qty[]"
                                                     class="form-control delivery-qty"
-                                                    value="{{ $delivery->delivery }}">
+                                                    value="">
                                             </td>
 
                                             <td>
@@ -514,7 +518,7 @@ $(document).ready(function () {
             let qty = parseFloat(qtyText) || 0;
 
             if (delivery > qty) {
-                alert('Delivery Qty cannot be greater than Quantity.');
+                alert('Delivery Qty cannot be greater than Pending Quantity.');
                 deliveryInput.val(qty);
             }
         });

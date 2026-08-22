@@ -312,9 +312,8 @@ class LiftingController extends Controller
                 }
 
                 $qty = (float) ($request->qty[$key] ?? 0);
-                $deliveryQty = (float) ($request->delivery_qty[$key] ?? 0);
+                $deliveryQty = (float) ($request->delivery_qty[$key]+$request->prev_receive[$key] ?? 0);
                 $rate = (float) ($product->price->lifting_price ?? 0);
-dd("fff",$request->all(),$qty, $deliveryQty,$rate);
                 /*
                 |--------------------------------------------------------------------------
                 | Delivery Validation

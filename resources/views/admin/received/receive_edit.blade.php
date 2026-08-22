@@ -255,19 +255,20 @@
 
                                                 {{-- Delivery --}}
                                                 <td>
+                                                    <input type="hidden" name="prev_receive[]" value="{{$delivery}}">
 
                                                     <input
                                                         type="number"
                                                         step="any"
                                                         min="0"
-                                                        max="{{ $qty }}"
+                                                        max="{{ $pending }}"
                                                         name="delivery_qty[]"
                                                         class="form-control delivery-qty"
-                                                        value="{{ $delivery }}"
-                                                        data-qty="{{ $qty }}">
+                                                        value=""
+                                                        data-pending="{{ $pending }}">
 
                                                     <small class="text-danger delivery-error d-none">
-                                                        Receive cannot be greater than Qty.
+                                                        Receive cannot be greater than Pending Quantity.
                                                     </small>
 
                                                 </td>
@@ -384,25 +385,20 @@
 @push('js')
 
 <script>
-
 $(document).ready(function () {
-
-    /*
-    |--------------------------------------------------------------------------
-    | Delivery Quantity Validation
-    |--------------------------------------------------------------------------
-    */
 
     $(document).on('input change', '.delivery-qty', function () {
 
         let input = $(this);
 
-        let delivery = parseFloat(input.val()) || 0;
+        let receiveQty = parseFloat(input.val()) || 0;
 
-        let qty = parseFloat(input.data('qty')) || 0;
+        // Original Pending Qty
+        let originalPending = parseFloat(input.data('pending')) || 0;
 
         let error = input.closest('td').find('.delivery-error');
 
+        // Pending badge
         let pendingBadge = input
             .closest('tr')
             .find('.pending-qty');
@@ -410,15 +406,15 @@ $(document).ready(function () {
 
         /*
         |--------------------------------------------------------------------------
-        | Delivery cannot be greater than Qty
+        | Receive Qty Pending এর বেশি হতে পারবে না
         |--------------------------------------------------------------------------
         */
 
-        if (delivery > qty) {
+        if (receiveQty > originalPending) {
 
-            input.val(qty);
+            receiveQty = originalPending;
 
-            delivery = qty;
+            input.val(originalPending);
 
             input.addClass('is-invalid');
 
@@ -429,23 +425,23 @@ $(document).ready(function () {
             input.removeClass('is-invalid');
 
             error.addClass('d-none');
-
         }
 
 
         /*
         |--------------------------------------------------------------------------
-        | Update Pending
+        | Pending Calculation
+        | Original Pending - Current Receive Input
         |--------------------------------------------------------------------------
         */
 
-        let pending = qty - delivery;
+        let remainingPending = originalPending - receiveQty;
 
-        if (pending < 0) {
-            pending = 0;
+        if (remainingPending < 0) {
+            remainingPending = 0;
         }
 
-        pendingBadge.text(pending);
+        pendingBadge.text(remainingPending);
 
     });
 
@@ -460,47 +456,41 @@ $(document).ready(function () {
 
         let valid = true;
 
-
         $('.delivery-qty').each(function () {
 
             let input = $(this);
 
-            let delivery = parseFloat(input.val()) || 0;
+            let receiveQty = parseFloat(input.val()) || 0;
 
-            let qty = parseFloat(input.data('qty')) || 0;
+            let originalPending = parseFloat(input.data('pending')) || 0;
 
-
-            if (delivery > qty) {
+            if (receiveQty > originalPending) {
 
                 valid = false;
 
-                input.val(qty);
+                input.val(originalPending);
 
                 input.addClass('is-invalid');
 
                 input.closest('td')
                     .find('.delivery-error')
                     .removeClass('d-none');
-
             }
 
         });
-
 
         if (!valid) {
 
             e.preventDefault();
 
-            alert('Delivery Qty cannot be greater than Quantity.');
+            alert('Receive Qty cannot be greater than Pending Quantity.');
 
             return false;
-
         }
 
     });
 
 });
-
 </script>
 
 @endpush
