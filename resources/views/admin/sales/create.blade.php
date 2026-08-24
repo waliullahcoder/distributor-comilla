@@ -651,7 +651,7 @@
                                         <input type="number"
                                             class="form-control do_ratio"
                                             readonly
-                                            value="0">
+                                             name="offer_qty[]" value="0">
                                     </td>
 
                                     <td>

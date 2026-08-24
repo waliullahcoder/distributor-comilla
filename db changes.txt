@@ -1,3 +1,5 @@
+DB->sales_lists->offer_qty, trade_discount
 
-DB->sales_lists->do_ratio
-DB-> lifting_products-> do_ratio
+add table
+sales_delivery,
+sales_delivery_lists 

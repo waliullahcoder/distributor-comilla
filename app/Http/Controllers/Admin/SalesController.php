@@ -20,8 +20,10 @@ use App\Models\Order;
 use App\Models\OrderProduct;
 use App\Models\Product;
 use App\Models\Sales;
-use App\Models\SalesReturn;
 use App\Models\SalesList;
+use App\Models\SalesDelivery;
+use App\Models\SalesDeliveryList;
+use App\Models\SalesReturn;
 use App\Models\SalesReturnList;
 use App\Models\Scopes\CompanyScope;
 use App\Models\Staff;
@@ -681,6 +683,8 @@ class SalesController extends Controller
                             'do_ratio' => $product->do_ratio,
                             'rate' => $request->rate[$key],
                             'qty' => $request->qty[$key],
+                            'offer_qty' => $request->offer_qty[$key],
+                            'trade_discount' => $request->trade_discount[$key],
                             'amount' => $request->amount[$key],
                             'delivery_amount' => 0,
                             'discount' => $discount+$tradediscount,
@@ -1021,146 +1025,195 @@ class SalesController extends Controller
         ));
     }
 
-    public function deliveryUpdate(Request $request, string $clientid)
-    {
-        DB::beginTransaction();
+   public function deliveryUpdate(Request $request, string $clientid)
+{
+    DB::beginTransaction();
 
-        try {
+    try {
 
-            $total_delivery_amount = 0;
+        foreach ($request->delivery_id ?? [] as $key => $deliveryId) {
 
-            foreach ($request->delivery_id ?? [] as $key => $deliveryId) {
+            $deliveryQty = (float) ($request->delivery_qty[$key] ?? 0);
 
-                /*
-                |--------------------------------------------------------------------------
-                | New Delivery Qty না থাকলে এই row Skip
-                |--------------------------------------------------------------------------
-                */
-
-                $newDelivery = $request->delivery_qty[$key] ?? null;
-
-                if (
-                    $newDelivery === null ||
-                    $newDelivery === '' ||
-                    (float) $newDelivery <= 0
-                ) {
-                    continue;
-                }
-
-
-                /*
-                |--------------------------------------------------------------------------
-                | নিরাপদভাবে Data নেওয়া
-                |--------------------------------------------------------------------------
-                */
-
-                $productId = $request->product_id[$key] ?? null;
-
-                if (!$productId) {
-                    continue;
-                }
-
-                $qty = (float) ($request->qty[$key] ?? 0);
-
-                $rate = (float) ($request->rate[$key] ?? 0);
-
-                $prevDelivery = (float) ($request->prev_delivery[$key] ?? 0);
-
-                $newDelivery = (float) $newDelivery;
-
-
-                /*
-                |--------------------------------------------------------------------------
-                | Product
-                |--------------------------------------------------------------------------
-                */
-
-                $product = Product::find($productId);
-
-                if (!$product) {
-                    continue;
-                }
-
-
-                /*
-                |--------------------------------------------------------------------------
-                | Trade Discount
-                |--------------------------------------------------------------------------
-                */
-
-                $tradediscount = 0;
-
-                if ($product->type == 1 && (int) $product->do_ratio > 0) {
-
-                    $freeqty = floor(
-                        $qty / (int) $product->do_ratio
-                    );
-
-                    $offerqty = $qty - $freeqty;
-
-                    $offer_subtotal = $offerqty * $rate;
-
-                    $tradediscount = $freeqty * $rate;
-                }
-
-
-                /*
-                |--------------------------------------------------------------------------
-                | Total Delivery
-                |--------------------------------------------------------------------------
-                */
-
-                $deliveryQty = $prevDelivery + $newDelivery;
-
-
-                /*
-                |--------------------------------------------------------------------------
-                | Delivery Amount
-                |--------------------------------------------------------------------------
-                */
-
-                $deliveryAmount = $deliveryQty * $rate;
-
-                $total_delivery_amount += $deliveryAmount;
-
-
-                /*
-                |--------------------------------------------------------------------------
-                | Update Sales List
-                |--------------------------------------------------------------------------
-                */
-
-                DB::table('sales_lists')
-                    ->where('id', $deliveryId)
-                    ->where('client_id', $clientid)
-                    ->update([
-                        'delivery' => $deliveryQty,
-
-                        'delivery_amount' => $deliveryAmount,
-
-                        'discount' => $tradediscount,
-
-                        'updated_at' => now(),
-                    ]);
+            // Delivery না থাকলে skip
+            if ($deliveryQty <= 0) {
+                continue;
             }
 
+            /*
+            |--------------------------------------------------------------------------
+            | Sales List
+            |--------------------------------------------------------------------------
+            */
+            $salesList = SalesList::where('id', $deliveryId)
+                ->where('client_id', $clientid)
+                ->first();
 
-            DB::commit();
+            if (!$salesList) {
+                continue;
+            }
 
-            return redirect()
-                ->route('admin.delivery.list')
-                ->withSuccessMessage('Client delivery updated successfully.');
+            /*
+            |--------------------------------------------------------------------------
+            | Sales
+            |--------------------------------------------------------------------------
+            */
+            $sales = Sales::find($salesList->sales_id);
 
-        } catch (\Exception $e) {
+            if (!$sales) {
+                continue;
+            }
 
-            DB::rollBack();
+            /*
+            |--------------------------------------------------------------------------
+            | Product
+            |--------------------------------------------------------------------------
+            */
+            $productId = $request->product_id[$key] ?? $salesList->product_id;
 
-            return redirect()
-                ->back()
-                ->withInput()
-                ->with('error', $e->getMessage());
+            if (!$productId) {
+                continue;
+            }
+
+            $product = Product::find($productId);
+
+            if (!$product) {
+                continue;
+            }
+
+            /*
+            |--------------------------------------------------------------------------
+            | Basic Data
+            |--------------------------------------------------------------------------
+            */
+            $rate = (float) ($request->rate[$key] ?? $salesList->rate ?? 0);
+            $qty  = (float) ($request->qty[$key] ?? $salesList->qty ?? 0);
+
+            $deliveryAmount = $deliveryQty * $rate;
+
+            $deliveryDate = now()->format('Y-m-d');
+
+            /*
+            |--------------------------------------------------------------------------
+            | Trade Discount Calculation
+            |--------------------------------------------------------------------------
+            */
+            $totalQty = SalesList::where('sales_id', $sales->id)
+                ->sum('qty');
+
+            $tradeDiscount = 0;
+
+            if ($totalQty > 0) {
+                $perDiscount = (float) $sales->discount / $totalQty;
+                $tradeDiscount = $perDiscount * $deliveryQty;
+            }
+
+            /*
+            |--------------------------------------------------------------------------
+            | Vendor
+            |--------------------------------------------------------------------------
+            */
+            $vendorId = $sales->vendor
+                ? $sales->vendor->vendor_id
+                : null;
+
+            /*
+            |--------------------------------------------------------------------------
+            | Offer Qty
+            |--------------------------------------------------------------------------
+            */
+            $offerQty = 0;
+
+            /*
+            |--------------------------------------------------------------------------
+            | 1. Update Sales List Delivery
+            |--------------------------------------------------------------------------
+            |
+            | আগের delivery + নতুন delivery
+            |
+            */
+            $oldDelivery = (float) ($salesList->delivery ?? 0);
+
+            $newDelivery = $oldDelivery + $deliveryQty;
+
+            $salesList->update([
+                'delivery' => $newDelivery,
+            ]);
+
+            /*
+            |--------------------------------------------------------------------------
+            | 2. Update Sales Delivery Amount
+            |--------------------------------------------------------------------------
+            |
+            | sales_lists-এর সব delivery amount যোগ করে
+            | sales.delivery_amount update হবে
+            |
+            */
+            $totalDeliveryAmount = SalesList::where('sales_id', $sales->id)
+                ->selectRaw('SUM(delivery * rate) as total_delivery_amount')
+                ->value('total_delivery_amount');
+
+            $totalDeliveryAmount = (float) ($totalDeliveryAmount ?? 0);
+
+            $sales->update([
+                'delivery_amount' => $totalDeliveryAmount,
+            ]);
+
+            /*
+            |--------------------------------------------------------------------------
+            | 3. Sales Delivery
+            |--------------------------------------------------------------------------
+            */
+            $salesDelivery = SalesDelivery::create([
+                'vendor_id'             => $vendorId,
+                'sales_id'              => $sales->id,
+                'client_id'             => $clientid,
+                'delivery_date'         => $deliveryDate,
+                'total_amount'          => $sales->total_amount,
+                'total_delivery_amount' => $deliveryAmount,
+                'discount'              => $tradeDiscount,
+                'total_paid'            => $sales->total_paid,
+                'status'                => 1,
+                'created_by'            => auth()->id(),
+            ]);
+
+            /*
+            |--------------------------------------------------------------------------
+            | 4. Sales Delivery List
+            |--------------------------------------------------------------------------
+            */
+            SalesDeliveryList::create([
+                'sales_delivery_id' => $salesDelivery->id,
+                'client_id'         => $clientid,
+                'product_id'        => $productId,
+                'delivery_date'     => $deliveryDate,
+                'variant_id'        => $salesList->variant_id ?? null,
+                'do_ratio'          => $product->do_ratio ?? 0,
+                'offer_qty'         => $offerQty,
+                'trade_discount'    => $tradeDiscount,
+                'rate'              => $rate,
+                'qty'               => $qty,
+                'delivery'          => $deliveryQty,
+                'delivery_amount'   => $deliveryAmount,
+            ]);
         }
+
+        DB::commit();
+
+        return redirect()
+            ->route('admin.delivery.list')
+            ->withSuccessMessage('Delivery saved successfully.');
+
+    } catch (\Exception $e) {
+
+        DB::rollBack();
+
+        return redirect()
+            ->back()
+            ->withInput()
+            ->with('error', $e->getMessage());
     }
+}
     /**
      * Show the form for editing the specified resource.
      */
@@ -1352,16 +1405,13 @@ class SalesController extends Controller
                 SalesList::where('sales_id', $id)->delete();
 
                $total_amount = 0;
-               $total_delivery_amount = 0;
 
                 foreach ($request->amount as $key => $amount) {
 
                     $total_amount += $amount;
 
-                    $delivery = $request->delivery[$key] ?? 0;
+                   
                     $rate = $request->rate[$key] ?? 0;
-
-                    $total_delivery_amount += $delivery * $rate;
                 }
                 $store_id = $request->store_id;
                 $sales->update([
@@ -1371,9 +1421,9 @@ class SalesController extends Controller
                     'date' => date('Y-m-d', strtotime($request->date)),
                     'sales_type' => $request->sales_type,
                     'total_amount' => $total_amount,
-                    'total_delivery_amount' => $total_delivery_amount,
+                    'total_delivery_amount' => 0,
                     'discount' => $request->discount,
-                    'total_paid' => $request->sales_type == 'cash' ? $request->net_payable : 0,
+                    'total_paid' => $request->net_payable,
                     'updated_by' => Auth::user()->id,
                     'staff_id' => $request->staff_id,
                 ]);
@@ -1393,17 +1443,6 @@ class SalesController extends Controller
 
                         $discount = ($request->discount / $request->total_amount) * $request->amount[$key];
                          $product=Product::find($product_id);
-                       $tradediscount= 0;
-                        if($product->type==1){
-                            $offerqty=0;
-                            $freeqty=0;
-                            $offer_subtotal=0;
-                            $freeqty= floor($request->qty[$key]/(int)$product->do_ratio) ;
-                            $offerqty = $request->qty[$key]-$freeqty;
-                            $offer_subtotal=$offerqty*$request->rate[$key];
-                           $tradediscount=$freeqty*$request->rate[$key];
-                        }
-                        $delivery_amount = $request->rate[$key]*$request->delivery[$key]??0;
                         SalesList::create([
                             'company_id' => Auth::user()->company_id ?? 1,
                             'sales_id' => $sales->id,
@@ -1413,10 +1452,12 @@ class SalesController extends Controller
                             'order_product_id' => $request->order_product_id[$key],
                             'rate' => $request->rate[$key],
                             'qty' => $request->qty[$key],
-                            'delivery' => $request->delivery[$key],
+                            'delivery' => 0,
                             'amount' => $request->amount[$key],
-                            'delivery_amount' => $delivery_amount,
-                            'discount' => $discount+$tradediscount,
+                            'offer_qty' => $request->offer_qty[$key],
+                            'trade_discount' => $request->trade_discount[$key],
+                            'delivery_amount' => 0,
+                            'discount' => $discount,
                             'collection' => $request->sales_type == 'cash' ? ($request->amount[$key] - $discount) : 0.00,
                         ]);
                    // }
