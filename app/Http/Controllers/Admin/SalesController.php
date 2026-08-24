@@ -641,7 +641,7 @@ class SalesController extends Controller
                     'total_amount' => $total_amount,
                     'total_delivery_amount' => 0,
                     'discount' => $request->discount,
-                    'total_paid' => $request->sales_type == 'cash' ? $request->net_payable : 0,
+                    'total_paid' => $request->net_payable,
                     'created_by' => Auth::user()->id,
                     'staff_id' => $request->staff_id,
                 ]);
@@ -892,15 +892,57 @@ class SalesController extends Controller
             $title = 'Company Name Goes Here.';
             $informations = 'Company address will goes here </br> Mobile: 0967XXXXXX, Email: youremail@gmail.com, www.website.com';
         }
-       
-        $total_sale_amount = Sales::whereNotIn('id', [$id])->where('client_id', $data->client_id)->sum('total_amount');
-        $total_discount_amount = SalesList::where('sales_id', $id)->where('client_id', $data->client_id)->sum('discount');
-        $total_paid_amount = Collection::where('client_id', $data->client_id)->where('payment_no', '!=', $data->invoice)->where('collection_type', '!=', 'adjust')->sum('amount');
-        $opening = $total_sale_amount - ($total_discount_amount + $total_paid_amount);
+      
+        $date = now()->toDateString();
+        $date = Carbon::parse($date);
+        $clientId= $data->client_id;
+        /*
+        |--------------------------------------------------------------------------
+        | Opening Balance
+        |--------------------------------------------------------------------------
+        | Selected date এর আগের সব Sales এবং Collection
+        */
+
+        $totalSalesBefore = Sales::where('client_id', $clientId)
+            ->whereDate('date', '<', $date)
+            ->sum('total_paid');
+
+        $totalCollectionBefore = Collection::where('client_id', $clientId)
+            ->whereDate('payment_date', '<', $date)
+            ->sum('amount');
+
+        $openingBalance = $totalCollectionBefore - $totalSalesBefore;
+
+
+        /*
+        |--------------------------------------------------------------------------
+        | Selected Date Transaction
+        |--------------------------------------------------------------------------
+        */
+
+        $todaySales = Sales::where('client_id', $clientId)
+            ->whereDate('date', $date)
+            ->sum('total_paid');
+
+        $todayCollection = Collection::where('client_id', $clientId)
+            ->whereDate('payment_date', $date)
+            ->sum('amount');
+
+
+        /*
+        |--------------------------------------------------------------------------
+        | Closing Balance
+        |--------------------------------------------------------------------------
+        */
+
+        $closingBalance = $openingBalance
+            + $todayCollection
+            - $todaySales;
+
 
         $report_title = 'Invoice';
         
-         return view('admin.sales.invoice', compact('title','total_discount_amount', 'logo', 'informations', 'hotline', 'report_title', 'data', 'opening'));
+         return view('admin.sales.invoice', compact('title', 'logo', 'informations', 'hotline', 'report_title', 'data', 'openingBalance','closingBalance'));
         // $pdf = Pdf::loadView('admin.sales.invoice', compact('title', 'logo', 'informations', 'hotline', 'report_title', 'data', 'opening'));
         // $pdf->setPaper('A4', 'landscape');
         return $pdf->stream('sales_invoice_' . date('d_m_Y_H_i_s') . '.pdf');

@@ -147,21 +147,21 @@
         <tfoot>
             <tr>
                 <td colspan="{{ $data->product_type == 'Consumer' ? '2' : '3' }}" rowspan="3"><b>In words :</b>
-                    {{ \App\HelperClass::convertNumber($data->total_amount - $total_discount_amount) }} Taka
+                    {{ \App\HelperClass::convertNumber($data->total_amount - $data->discount) }} Taka
                     Only</td>
                 <td class="text-right" colspan="3"><b>Total Amount :</b></td>
                 <td class="text-right" width="70">{{ number_format($data->total_amount, 2, '.', ',') }}</td>
             </tr>
-            @if ($total_discount_amount > 0)
+            @if ($data->discount > 0)
             <tr>
                 <td class="text-right" colspan="3"><b>Discount Amount :</b></td>
-                <td class="text-right" width="70">{{ number_format($total_discount_amount, 2, '.', ',') }}</td>
+                <td class="text-right" width="70">{{ number_format($data->discount, 2, '.', ',') }}</td>
             </tr>
             @endif
             <tr>
                 <td class="text-right" colspan="3"><b>Net Invoice Amount :</b></td>
                 <td class="text-right" width="70">
-                    {{ number_format($data->total_amount - $total_discount_amount, 2, '.', ',') }}</td>
+                    {{ number_format($data->total_amount - $data->discount, 2, '.', ',') }}</td>
             </tr>
         </tfoot>
     </table>
@@ -169,14 +169,11 @@
         <tbody>
             <tr>
                 <td class="text-right" colspan="5"><b>Opening Balance :</b></td>
-                <td class="text-right" width="70">{{ number_format($opening, 2, '.', ',') }}</td>
+                <td class="text-right" width="70">{{ number_format($openingBalance, 2, '.', ',') }}</td>
             </tr>
             <tr>
-                <td class="text-right" colspan="5"><b>Update Balance :</b></td>
-                @php
-                $payable = $opening + $data->total_amount - $total_discount_amount;
-                @endphp
-                <td class="text-right" width="70">{{ number_format($payable, 2, '.', ',') }}</td>
+                <td class="text-right" colspan="5"><b>Closing Balance :</b></td>
+                <td class="text-right" width="70">{{ number_format($closingBalance, 2, '.', ',') }}</td>
             </tr>
         </tbody>
     </table>
@@ -189,13 +186,13 @@
                 <tr>
                     <td style="border: none;" width="33%">
                         <div class="signature-item">
-                            <i class="staff">{{ auth()->user()->name }}</i>
+                            <!-- <i class="staff">{{ auth()->user()->name }}</i> -->
                             <span>Prepared By</span>
                         </div>
                     </td>
                     <td style="border: none;">
                         <div class="signature-item">
-                            <i class="staff">{{ @$data->staff->name }}</i>
+                            <!-- <i class="staff">{{ @$data->staff->name }}</i> -->
                             <span>Sales By</span>
                         </div>
                     </td>

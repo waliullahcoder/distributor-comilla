@@ -128,11 +128,13 @@
                             <th class="text-center" width="30">SL#</th>
                             <th class="text-nowrap">Gift</th>
                             <th class="text-nowrap">Vendor Name</th>
-                            <th class="text-nowrap">Product Code</th>
+                            <th class="text-nowrap">Code</th>
                             <th class="text-nowrap">Product name</th>
                             <th>Rate</th>
                             <th class="text-nowrap">Order Qty</th>
                             <th>Unit</th>
+                            <th>Offer</th>
+                            <th>Offer Amount</th>
                             <th>Amount</th>
                             <th class="text-center" width="50"><i class="far fa-trash-alt"></i></th>
                         </tr>
@@ -162,7 +164,7 @@
                             </td>
                             <td colspan="3">
                             </td>
-                            <td colspan="2">
+                            <td colspan="4">
                                 <input type="hidden" name="total_price" id="total_price" value="0">
                                 <div class="input-group align-items-center justify-content-end text-end mb-2"
                                     style="height: 32px;">
@@ -634,11 +636,34 @@
                                     </td>
                                     <td>${ response.vendor }</td>
                                     <td>${ response.product.code }</td>
-                                    <td>${ response.product.name }</td>
-                                    <td><input type="number" style="min-width: 100px;" class="form-control rate" placeholder="Rate" name="rate[]" value="${ response.price }"></td>
-                                    <td><input type="number" style="min-width: 100px;" class="form-control qty" placeholder="Quantity" step="any" name="qty[]"  value="${ response.quantity }"></td>
-                                    <td><input type="text" style="min-width: 100px;" class="form-control unit" placeholder="Unit" readonly value="${ response.unit }"></td>
-                                    <td><input type="number" style="min-width: 100px;" class="form-control amount" placeholder="Amount" name="amount[]" readonly value="${ response.amount }"></td>
+                                    <td>   ${response.product.name}
+    ${response.product.do_ratio > 0 ? `, Trade: ${response.product.do_ratio} CTN : 1 CTN` : ''}</td>
+    
+                                    <td><input type="number" style="min-width: 60px;" class="form-control rate" placeholder="Rate" name="rate[]" value="${ response.price }"></td>
+                                    <td><input type="number" style="min-width: 60px;" class="form-control qty" placeholder="Quantity" step="any" name="qty[]"  value="${ response.quantity }"></td>
+                                    <td><input type="text" style="min-width: 50px;" class="form-control unit" placeholder="Unit" readonly value="${ response.unit }"></td>
+                                   
+                                    <td>
+                                       <input type="hidden"
+                                            class="actual_do_ratio" name="do_ratio"
+                                            value="${response.product.do_ratio ?? 0}">
+
+                                        <input type="number"
+                                            class="form-control do_ratio"
+                                            readonly
+                                            value="0">
+                                    </td>
+
+                                    <td>
+                                        <input type="number"
+                                            style="min-width: 60px;"
+                                            class="form-control trade_discount"
+                                            name="trade_discount[]"
+                                            value="0"
+                                            readonly>
+                                    </td>
+
+ <td><input type="number" style="min-width: 70px;" class="form-control amount" placeholder="Amount" name="amount[]" readonly value="${ response.amount }"></td>
                                     <td class="text-center"><button type="button" class="btn btn-xs btn-outline-danger remove_item mnw-auto px-2"><i class="far fa-trash-alt"></i></button></td>
                                 </tr>`;
                             $('#tbody').append(tr);
@@ -690,30 +715,63 @@
                 });
             });
 
-            function calculate() {
-                var total_amount = 0;
-                $('.serial').each(function(index, value) {
-                    $(value).text(index + 1);
-                    var amount = $('input[name="amount[]"]')[index];
-                    var amount_val = $(amount).val();
-                    total_amount += parseFloat(amount_val);
-                });
-                $('#total_amount').val(total_amount);
-                var discount = $('#discount').val();
-                var net_payable = total_amount - parseFloat(discount);
-                $('#total_amount').val(total_amount);
-                $('#net_payable').val(net_payable);
-                var balance = $('#credit_limit').val();
-                var payable = $('#net_payable').val();
-                var sales_type = $('#sales_type').val();
-                if (sales_type == 'credit' && parseFloat(payable) > parseFloat(balance)) {
-                    $('#limit_crosed').show();
-                    $(":submit").attr('disabled', true);
-                } else {
-                    $(":submit").attr('disabled', false);
-                    $('#limit_crosed').hide();
-                }
-            }
+           function calculate() {
+
+    var subtotal_amount = 0;
+    var total_trade_discount = 0;
+
+    $('#tbody tr').each(function () {
+
+        var row = $(this);
+
+        var rate = parseFloat(row.find('.rate').val()) || 0;
+        var qty = parseFloat(row.find('.qty').val()) || 0;
+
+        // আসল DO Ratio hidden input থেকে নিবে
+        var actual_do_ratio = parseFloat(
+            row.find('.actual_do_ratio').val()
+        ) || 0;
+
+        // Product Amount
+        var amount = rate * qty;
+
+        row.find('.amount').val(amount);
+
+        subtotal_amount += amount;
+
+        // ভাগফল এবং Trade Discount
+        var ratio_result = 0;
+        var trade_discount = 0;
+
+        if (actual_do_ratio > 0) {
+
+            // দশমিকের পরের অংশ বাদ
+            ratio_result = Math.floor(qty / actual_do_ratio);
+
+            // ভাগফল × Rate
+            trade_discount = ratio_result * rate;
+        }
+
+        // DO Ratio column এ ভাগফল দেখাবে
+        row.find('.do_ratio').val(ratio_result);
+
+        // Trade Discount
+        row.find('.trade_discount').val(trade_discount);
+
+        total_trade_discount += trade_discount;
+    });
+
+    // Subtotal
+    $('#total_amount').val(subtotal_amount);
+
+    // Total Trade Discount
+    $('#discount').val(total_trade_discount);
+
+    // Net Payable
+    var net_payable = subtotal_amount - total_trade_discount;
+
+    $('#net_payable').val(net_payable);
+}
 
             $(document).on('change', 'input[name="discount_type"]', function(e) {
                 if ($(this).val() == 'percentage') {
