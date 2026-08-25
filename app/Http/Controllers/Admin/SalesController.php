@@ -1031,11 +1031,15 @@ class SalesController extends Controller
 
     try {
 
+        $deliveryDate = now()->format('Y-m-d');
+
+        // প্রতিটি invoice-এর জন্য আলাদা SalesDelivery রাখবে
+        $salesDeliveries = [];
+
         foreach ($request->delivery_id ?? [] as $key => $deliveryId) {
 
             $deliveryQty = (float) ($request->delivery_qty[$key] ?? 0);
 
-            // Delivery না থাকলে skip
             if ($deliveryQty <= 0) {
                 continue;
             }
@@ -1055,7 +1059,7 @@ class SalesController extends Controller
 
             /*
             |--------------------------------------------------------------------------
-            | Sales
+            | Sales / Invoice
             |--------------------------------------------------------------------------
             */
             $sales = Sales::find($salesList->sales_id);
@@ -1069,11 +1073,8 @@ class SalesController extends Controller
             | Product
             |--------------------------------------------------------------------------
             */
-            $productId = $request->product_id[$key] ?? $salesList->product_id;
-
-            if (!$productId) {
-                continue;
-            }
+            $productId = $request->product_id[$key]
+                ?? $salesList->product_id;
 
             $product = Product::find($productId);
 
@@ -1083,30 +1084,22 @@ class SalesController extends Controller
 
             /*
             |--------------------------------------------------------------------------
-            | Basic Data
+            | Rate & Qty
             |--------------------------------------------------------------------------
             */
-            $rate = (float) ($request->rate[$key] ?? $salesList->rate ?? 0);
-            $qty  = (float) ($request->qty[$key] ?? $salesList->qty ?? 0);
+            $rate = (float) (
+                $request->rate[$key]
+                ?? $salesList->rate
+                ?? 0
+            );
+
+            $qty = (float) (
+                $request->qty[$key]
+                ?? $salesList->qty
+                ?? 0
+            );
 
             $deliveryAmount = $deliveryQty * $rate;
-
-            $deliveryDate = now()->format('Y-m-d');
-
-            /*
-            |--------------------------------------------------------------------------
-            | Trade Discount Calculation
-            |--------------------------------------------------------------------------
-            */
-            $totalQty = SalesList::where('sales_id', $sales->id)
-                ->sum('qty');
-
-            $tradeDiscount = 0;
-
-            if ($totalQty > 0) {
-                $perDiscount = (float) $sales->discount / $totalQty;
-                $tradeDiscount = $perDiscount * $deliveryQty;
-            }
 
             /*
             |--------------------------------------------------------------------------
@@ -1119,67 +1112,74 @@ class SalesController extends Controller
 
             /*
             |--------------------------------------------------------------------------
-            | Offer Qty
+            | Trade Discount
             |--------------------------------------------------------------------------
             */
-            $offerQty = 0;
+            $totalQty = SalesList::where('sales_id', $sales->id)
+                ->sum('qty');
+
+            $tradeDiscount = 0;
+
+            if ($totalQty > 0) {
+
+                $perDiscount =
+                    (float) $sales->discount / $totalQty;
+
+                $tradeDiscount =
+                    $perDiscount * $deliveryQty;
+            }
 
             /*
             |--------------------------------------------------------------------------
-            | 1. Update Sales List Delivery
+            | SalesDelivery
             |--------------------------------------------------------------------------
             |
-            | আগের delivery + নতুন delivery
+            | একই invoice হলে একই SalesDelivery
+            | ভিন্ন invoice হলে নতুন SalesDelivery
             |
             */
-            $oldDelivery = (float) ($salesList->delivery ?? 0);
+            if (!isset($salesDeliveries[$sales->id])) {
 
-            $newDelivery = $oldDelivery + $deliveryQty;
+                $salesDeliveries[$sales->id] = SalesDelivery::create([
+                    'vendor_id'              => $vendorId,
+                    'sales_id'               => $sales->id,
+                    'client_id'              => $clientid,
+                    'delivery_date'          => $deliveryDate,
+                    'total_amount'           => $sales->total_amount,
+                    'total_delivery_amount' => 0,
+                    'discount'               => 0,
+                    'total_paid'             => $sales->total_paid,
+                    'status'                 => 1,
+                    'created_by'             => auth()->id(),
+                ]);
+            }
 
-            $salesList->update([
-                'delivery' => $newDelivery,
-            ]);
+            $salesDelivery = $salesDeliveries[$sales->id];
 
             /*
             |--------------------------------------------------------------------------
-            | 2. Update Sales Delivery Amount
+            | Duplicate Product Check
             |--------------------------------------------------------------------------
             |
-            | sales_lists-এর সব delivery amount যোগ করে
-            | sales.delivery_amount update হবে
+            | একই invoice + একই product + একই variant
+            | এই delivery transaction-এর মধ্যে duplicate হবে না
             |
             */
-            $totalDeliveryAmount = SalesList::where('sales_id', $sales->id)
-                ->selectRaw('SUM(delivery * rate) as total_delivery_amount')
-                ->value('total_delivery_amount');
+            $alreadyExists = SalesDeliveryList::where(
+                'sales_delivery_id',
+                $salesDelivery->id
+            )
+            ->where('product_id', $productId)
+            ->where('variant_id', $salesList->variant_id)
+            ->exists();
 
-            $totalDeliveryAmount = (float) ($totalDeliveryAmount ?? 0);
-
-            $sales->update([
-                'delivery_amount' => $totalDeliveryAmount,
-            ]);
+            if ($alreadyExists) {
+                continue;
+            }
 
             /*
             |--------------------------------------------------------------------------
-            | 3. Sales Delivery
-            |--------------------------------------------------------------------------
-            */
-            $salesDelivery = SalesDelivery::create([
-                'vendor_id'             => $vendorId,
-                'sales_id'              => $sales->id,
-                'client_id'             => $clientid,
-                'delivery_date'         => $deliveryDate,
-                'total_amount'          => $sales->total_amount,
-                'total_delivery_amount' => $deliveryAmount,
-                'discount'              => $tradeDiscount,
-                'total_paid'            => $sales->total_paid,
-                'status'                => 1,
-                'created_by'            => auth()->id(),
-            ]);
-
-            /*
-            |--------------------------------------------------------------------------
-            | 4. Sales Delivery List
+            | Sales Delivery List
             |--------------------------------------------------------------------------
             */
             SalesDeliveryList::create([
@@ -1189,13 +1189,67 @@ class SalesController extends Controller
                 'delivery_date'     => $deliveryDate,
                 'variant_id'        => $salesList->variant_id ?? null,
                 'do_ratio'          => $product->do_ratio ?? 0,
-                'offer_qty'         => $offerQty,
+                'offer_qty'         => 0,
                 'trade_discount'    => $tradeDiscount,
                 'rate'              => $rate,
                 'qty'               => $qty,
                 'delivery'          => $deliveryQty,
                 'delivery_amount'   => $deliveryAmount,
             ]);
+
+            /*
+            |--------------------------------------------------------------------------
+            | sales_lists.delivery Update
+            |--------------------------------------------------------------------------
+            */
+            $salesList->increment('delivery', $deliveryQty);
+        }
+
+        /*
+        |--------------------------------------------------------------------------
+        | Update Each Invoice
+        |--------------------------------------------------------------------------
+        */
+        foreach ($salesDeliveries as $salesId => $salesDelivery) {
+
+            /*
+            |--------------------------------------------------------------------------
+            | Sales Delivery Total
+            |--------------------------------------------------------------------------
+            */
+            $totalDeliveryAmount = SalesDeliveryList::where(
+                'sales_delivery_id',
+                $salesDelivery->id
+            )->sum('delivery_amount');
+
+            $totalDiscount = SalesDeliveryList::where(
+                'sales_delivery_id',
+                $salesDelivery->id
+            )->sum('trade_discount');
+
+            $salesDelivery->update([
+                'total_delivery_amount' => $totalDeliveryAmount,
+                'discount'              => $totalDiscount,
+            ]);
+
+            /*
+            |--------------------------------------------------------------------------
+            | Sales.delivery_amount
+            |--------------------------------------------------------------------------
+            */
+            $sales = Sales::find($salesId);
+
+            if ($sales) {
+
+                $salesDeliveryAmount = SalesDelivery::where(
+                    'sales_id',
+                    $salesId
+                )->sum('total_delivery_amount');
+
+                $sales->update([
+                    'delivery_amount' => $salesDeliveryAmount,
+                ]);
+            }
         }
 
         DB::commit();
@@ -1205,7 +1259,7 @@ class SalesController extends Controller
             ->withSuccessMessage('Delivery saved successfully.');
 
     } catch (\Exception $e) {
-
+         dd($e);
         DB::rollBack();
 
         return redirect()
