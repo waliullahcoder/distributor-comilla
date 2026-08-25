@@ -89,6 +89,8 @@
                         <th>Code</th>
                         <th width="150" class="text-center">Rate</th>
                         <th width="150" class="text-center">Quantity</th>
+                        <th>Offer</th>
+                        <th>Offer Amount</th>
                         <th width="150" class="text-center">Amount</th>
                         <th class="text-center" width="50"><i class="far fa-trash-alt"></i></th>
                     </tr>
@@ -228,27 +230,39 @@
                                         <td class="px-3">${response.product.code}</td>
                                         <td><input style="width: 150px;" class="text-center rate" type="number" name="lifting_price[${existing_key}]" step="any" value="${response.product.price.lifting_price}" required></td>
                                         <td><input style="width: 150px;" class="text-center qty" type="number" name="quantity[${existing_key}]" step="any" value="${qty}" required></td>
+
+                                         <td>
+                                       <input type="hidden"
+                                            class="actual_do_ratio" name="do_ratio"
+                                            value="${response.product.do_ratio ?? 0}">
+
+                                        <input type="number"
+                                            class="form-control do_ratio"
+                                            readonly
+                                             name="offer_qty[]" value="0">
+                                    </td>
+
+                                    <td>
+                                        <input type="number"
+                                            style="min-width: 60px;"
+                                            class="form-control trade_discount"
+                                            name="trade_discount[]"
+                                            value="0"
+                                            readonly>
+                                    </td>
+
+
                                         <td><input style="width: 150px;" class="text-center amount" type="number" name="amount[${existing_key}]" step="any" value="${qty * response.product.price.lifting_price}" required></td>
                                         <td class="text-center"><button type="button" class="btn btn-xs btn-outline-danger remove_item mnw-auto px-2"><i class="far fa-trash-alt"></i></button></td>
                                     </tr>`;
                                 $('#tbody').append(tr);
 
-                                var total_amount = 0;
-                                $('.rate').each(function(index, value) {
-                                    var rate = parseFloat($(value).val());
-                                    var qty = parseFloat($($('.qty')[index]).val());
-                                    var total = rate * qty;
-                                    $($('.amount')[index]).val(total);
-                                    total_amount += total;
-                                });
-                                var discount = parseFloat($('#discount').val());
-                                var net_payable = total_amount - discount;
-                                $('#total_cost').val(total_amount);
-                                $('#net_payable').val(net_payable);
+                                calculate();
                             }
                         }
                     });
                 }
+                  
             });
 
             $(document).on('click', '.remove_item', function(e) {
@@ -350,5 +364,83 @@
                 }
             });
         });
+
+        // Rate অথবা Quantity পরিবর্তন হলে
+$(document).on('input change', '.rate, .qty', function () {
+    calculate();
+});
+
+// Product add হওয়ার পরে
+$(document).on('click', '#add_item', function () {
+    setTimeout(function () {
+        calculate();
+    }, 300);
+});
+
+// Product remove হওয়ার পরে
+$(document).on('click', '.remove_item', function () {
+    setTimeout(function () {
+        calculate();
+    }, 50);
+});
+
+
+      function calculate() {
+
+    var subtotal_amount = 0;
+    var total_trade_discount = 0;
+
+    $('#tbody tr').each(function () {
+
+        var row = $(this);
+
+        var rate = parseFloat(row.find('.rate').val()) || 0;
+        var qty = parseFloat(row.find('.qty').val()) || 0;
+
+        // Actual DO Ratio
+        var actual_do_ratio = parseFloat(
+            row.find('.actual_do_ratio').val()
+        ) || 0;
+
+        // Product Amount
+        var amount = rate * qty;
+
+        row.find('.amount').val(amount);
+
+        subtotal_amount += amount;
+
+        // DO Ratio calculation
+        var ratio_result = 0;
+        var trade_discount = 0;
+
+        if (actual_do_ratio > 0) {
+
+            // ভাগফলের শুধু পূর্ণ সংখ্যা
+            ratio_result = Math.floor(qty / actual_do_ratio);
+
+            // ভাগফল × Rate
+            trade_discount = ratio_result * rate;
+        }
+
+        // Offer Quantity
+        row.find('.do_ratio').val(ratio_result);
+
+        // Offer Amount
+        row.find('.trade_discount').val(trade_discount);
+
+        total_trade_discount += trade_discount;
+    });
+
+    // তোমার HTML এ id="total_cost"
+    $('#total_cost').val(subtotal_amount);
+
+    // Trade Discount
+    $('#discount').val(total_trade_discount);
+
+    // Net Payable
+    var net_payable = subtotal_amount - total_trade_discount;
+
+    $('#net_payable').val(net_payable);
+}
     </script>
 @endpush
