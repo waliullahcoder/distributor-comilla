@@ -51,6 +51,44 @@
 .overflow-hidden {
     overflow: hidden;
 }
+
+@media print {
+
+    @page {
+        size: A4;
+        margin: 10mm 8mm 25mm 8mm;
+    }
+
+    .print-footer {
+        position: relative !important;
+        bottom: auto !important;
+        left: auto !important;
+        width: 100%;
+        display: block;
+        clear: both;
+        margin-top: 30px;
+
+        break-inside: avoid;
+        page-break-inside: avoid;
+    }
+
+    .print-footer table {
+        break-inside: avoid;
+        page-break-inside: avoid;
+    }
+
+    .signature-item {
+        break-inside: avoid;
+        page-break-inside: avoid;
+    }
+
+    .content-wrapper {
+        position: relative !important;
+        min-height: auto !important;
+        padding-bottom: 0 !important;
+    }
+
+}
 </style>
 @endpush
 
@@ -79,7 +117,7 @@
                 </b>
 
                 <span class="d-inline-block" style="min-width: 130px;">
-                    {{ date('d-m-Y', strtotime($data->updated_at)) }}
+                  {{ date('d-m-Y', strtotime($data->delivery_date)) }}
                 </span>
             </td>
         </tr>
@@ -121,9 +159,8 @@
                 <b class="d-inline-block text-left">
                     Car Number :
                 </b>
-
                 <span class="d-inline-block" style="min-width: 130px;">
-                    {{ @$data->staff->car_number }}
+                    {{ @$data->sales->staff->car_number }}
                 </span>
             </td>
         </tr>
@@ -135,7 +172,7 @@
                 </b>
 
                 <span class="d-inline-block" style="min-width: 200px;">
-                    {{ @$data->staff->name }}
+                    {{ @$data->sales->staff->name }}
                 </span>
             </td>
 
@@ -145,7 +182,7 @@
                 </b>
 
                 <span class="d-inline-block" style="min-width: 130px;">
-                    {{ @$data->staff->phone }}
+                    {{ @$data->sales->staff->phone }}
                 </span>
             </td>
         </tr>
@@ -170,15 +207,6 @@
                 </span>
             </td>
 
-            <!-- <td class="text-right">
-                <b class="d-inline-block text-left">
-                    Invoice Date :
-                </b>
-
-                <span class="d-inline-block" style="min-width: 130px;">
-                    {{ date('d-m-Y', strtotime($data->date)) }}
-                </span>
-            </td> -->
         </tr>
     </table>
 
@@ -199,12 +227,6 @@
                     Product Details
                 </th>
 
-                @if($data->product_type != 'Consumer')
-                    <th>
-                        Variant
-                    </th>
-                @endif
-
                 <th width="70">
                     Product Code
                 </th>
@@ -214,13 +236,16 @@
                 <th width="70">
                     Invoice Date
                 </th>
+                <th width="70">
+                    Rate
+                </th>
 
                 <th width="70">
                     Delivery
                 </th>
 
-                <th width="70">
-                    Rate
+                 <th width="70">
+                    Offer Amount (RATIO)
                 </th>
 
                 <th width="70" class="text-right">
@@ -231,6 +256,7 @@
 
 
         <tbody>
+          
 
             @foreach ($data->list as $item)
 
@@ -244,16 +270,6 @@
 
                     {{-- PRODUCT DETAILS --}}
                     <td style="width:30%">
-
-                        {{-- Invoice Number --}}
-                        <!-- <small>
-                            Invoice No :
-                            <b>
-                                {{ @$item->sales->invoice }} , Invoice Date: {{ @$item->sales->date }}
-                            </b>
-                        </small>
-
-                        <br> -->
 
                         {{ @$item->product->name }}
 
@@ -314,16 +330,7 @@
                         @endif
 
                     </td>
-                      {{-- VARIANT --}}
-                    @if($data->product_type != 'Consumer')
-
-                        <td width="50">
-
-                            {{ @$item->attribute_name ?? '-' }}
-
-                        </td>
-
-                    @endif
+                
 
 
                     {{-- PRODUCT CODE --}}
@@ -332,19 +339,14 @@
                         {{ @$item->product->code }}
 
                     </td>
-                    <td>{{ @$item->sales->invoice }}</td>
-                    <td>{{ @$item->sales->date }}</td>
+                    <td>{{ @$item->salesdelivery->sales->invoice }}</td>
+                    <td>{{ @$item->salesdelivery->sales->date }}</td>
 
 
                   
 
 
-                    {{-- DELIVERY --}}
-                    <td width="50">
-
-                        {{ @$item->delivery }}
-
-                    </td>
+                   
 
 
                     {{-- RATE --}}
@@ -356,6 +358,18 @@
                             '.',
                             ','
                         ) }}
+
+                    </td>
+
+                     {{-- DELIVERY --}}
+                    <td width="50">
+
+                        {{ @$item->delivery }}
+
+                    </td>
+                     <td width="50">
+
+                        {{ @$item->trade_discount }}
 
                     </td>
 
@@ -498,17 +512,22 @@
 
                     {{-- TOTAL DELIVERY --}}
 
-                    @php
-                        $deliverySummary = $data->list->groupBy('product_id')->map(function ($items) {
-                            return [
-                                'product_name' => @$items->first()->product->name,
-                                'delivery' => $items->sum('delivery'),
-                                'pending' => $items->sum(function ($item) {
-                                    return $item->qty - $item->delivery;
-                                }),
-                            ];
-                        });
-                    @endphp
+                     @php
+                            $deliverySummary = $data->list
+                                ->groupBy('product_id')
+                                ->map(function ($items) {
+
+                                    return [
+                                        'product_name' => @$items->first()->product->name,
+
+                                        'delivery' => $items->sum('delivery'),
+
+                                        'pending' => $items->sum(function ($item) {
+                                            return $item->qty - $item->delivery;
+                                        }),
+                                    ];
+                                });
+                        @endphp
 
                     <b>Total Delivery :</b><br>
 
@@ -566,7 +585,7 @@
                 <td class="text-right" width="70">
 
                     {{ number_format(
-                        $opening,
+                        $openingBalance,
                         2,
                         '.',
                         ','
@@ -577,23 +596,20 @@
             </tr>
 
 
-            {{-- UPDATE BALANCE --}}
+            {{-- Closing BALANCE --}}
             <tr>
 
                 <td class="text-right" colspan="3">
 
                     <b>
-                        Update Balance :
+                        Closing Balance :
                     </b>
 
                 </td>
 
                 @php
 
-                    $payable =
-                        $opening
-                        + $data->total_delivery_amount
-                        - $total_discount_amount;
+                    $payable =$closingBalance;
 
                 @endphp
 
@@ -624,7 +640,7 @@
 
     <div>
 
-        <table class="table mb-0 border-0">
+      <table class="table mb-0 info-table align-middle">
 
             <tbody>
 
@@ -634,9 +650,9 @@
 
                         <div class="signature-item">
 
-                            <i class="staff">
+                            <!-- <i class="staff">
                                 {{ auth()->user()->name }}
-                            </i>
+                            </i> -->
 
                             <span>
                                 Prepared By

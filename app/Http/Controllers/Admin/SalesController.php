@@ -172,164 +172,345 @@ class SalesController extends Controller
         );
     }
 
-    public function deliveryPrint(string $clientid)
-    {
-        // Client-এর সব invoice
-        $sales = Sales::where('client_id', $clientid)
-            ->orderBy('id', 'desc')
-            ->get();
+public function deliveryPrint(string $clientid)
+{
+    /*
+    |--------------------------------------------------------------------------
+    | Current Delivery Date
+    |--------------------------------------------------------------------------
+    */
 
-        if ($sales->isEmpty()) {
-            abort(404, 'No sales found for this client.');
-        }
+    $deliveryDate = Carbon::today()->toDateString();
+    $date = Carbon::today()->toDateString();
 
-        // Client
-        $client = $sales->first()->client;
 
-        // Vendor / Company info
-        $vendor = $sales->first()->vendor;
-// dd($sales->first(),$clientid);
-        if ($vendor) {
-            $company = $vendor->name;
-            $hotline = $vendor->phone;
-            $logo = $vendor->logo;
-            $title = $vendor->name;
+    /*
+    |--------------------------------------------------------------------------
+    | Current Date + Client Wise All Deliveries
+    |--------------------------------------------------------------------------
+    |
+    | একই দিনে multiple delivery / invoice থাকতে পারে
+    |
+    */
 
-            $informations = $vendor->address . '</br>' .
-                $vendor->phone . ', ' .
-                $vendor->email . ', ' .
-                $vendor->contact_person;
-        } else {
-            $logo = null;
-            $hotline = '01xxxxx-xxxxx';
-            $title = 'Company Name Goes Here.';
-            $informations = 'Company address will goes here </br>
-                Mobile: 0967XXXXXX, Email: youremail@gmail.com, www.website.com';
-        }
+    $deliveries = SalesDelivery::with([
+            'client',
+            'vendor',
+            'sales'
+        ])
+        ->where('client_id', $clientid)
+        ->whereDate('delivery_date', $deliveryDate)
+        ->orderBy('id', 'asc')
+        ->get();
 
-        /*
-        |--------------------------------------------------------------------------
-        | Client-এর সব Sales List
-        |--------------------------------------------------------------------------
-        */
-        $lists = SalesList::with('product')
-            ->where('client_id', $clientid)
-            ->where('delivery', '>', 0)
-            ->orderBy('id', 'asc')
-            ->get();
 
-        /*
-        |--------------------------------------------------------------------------
-        | Client-wise Delivery Amount
-        |--------------------------------------------------------------------------
-        */
-        $client_total_delivery_amount = SalesList::where('client_id', $clientid)
-            ->sum(DB::raw('delivery * rate'));
+    /*
+    |--------------------------------------------------------------------------
+    | যদি আজকের কোন Delivery না থাকে
+    |--------------------------------------------------------------------------
+    */
 
-        /*
-        |--------------------------------------------------------------------------
-        | Client-wise Discount
-        |--------------------------------------------------------------------------
-        */
-        $total_discount_amount = SalesList::where('client_id', $clientid)
-            ->sum('discount');
-
-        /*
-        |--------------------------------------------------------------------------
-        | Client-এর Total Sales Amount
-        |--------------------------------------------------------------------------
-        */
-        $client_total_amount = SalesList::where('client_id', $clientid)
-            ->sum(DB::raw('qty * rate'));
-
-        /*
-        |--------------------------------------------------------------------------
-        | Total Paid Amount
-        |--------------------------------------------------------------------------
-        */
-        $total_paid_amount = Collection::where('client_id', $clientid)
-            ->where('collection_type', '!=', 'adjust')
-            ->sum('amount');
-
-        /*
-        |--------------------------------------------------------------------------
-        | Opening Balance
-        |--------------------------------------------------------------------------
-        |
-        | Previous payment বাদ দিয়ে client-এর total delivery amount
-        |
-        */
-        $opening = $client_total_delivery_amount
-            - $total_discount_amount
-            - $total_paid_amount;
-
-        /*
-        |--------------------------------------------------------------------------
-        | Latest / Main Data Object
-        |--------------------------------------------------------------------------
-        |
-        | Blade-এর existing structure ঠিক রাখার জন্য
-        | প্রথম Sales object-এর সাথে client-wise list attach করছি।
-        |
-        */
-        $data = $sales->first();
-
-        $data->list = $lists;
-
-        $data->client = $client;
-
-        /*
-        |--------------------------------------------------------------------------
-        | Client-wise total delivery
-        |--------------------------------------------------------------------------
-        */
-        $data->total_delivery_amount = $client_total_delivery_amount;
-
-        /*
-        |--------------------------------------------------------------------------
-        | Client-wise total quantity
-        |--------------------------------------------------------------------------
-        */
-        $data->total_qty = SalesList::where('client_id', $clientid)
-            ->sum('qty');
-
-        /*
-        |--------------------------------------------------------------------------
-        | Client-wise total delivered quantity
-        |--------------------------------------------------------------------------
-        */
-        $data->total_delivery_qty = SalesList::where('client_id', $clientid)
-            ->sum('delivery');
-
-        /*
-        |--------------------------------------------------------------------------
-        | Client-wise pending quantity
-        |--------------------------------------------------------------------------
-        */
-        $data->total_pending_qty = $data->total_qty - $data->total_delivery_qty;
-
-        $data->invoice = 'CLIENT-WISE DELIVERY HISTORY';
-        $data->date = $sales->max('date');
-        $data->updated_at = $sales->max('updated_at');
-
-        $report_title = 'Delivery';
-
-        return view(
-            'admin.sales-delivery.deliveryPrint',
-            compact(
-                'title',
-                'total_discount_amount',
-                'logo',
-                'informations',
-                'hotline',
-                'report_title',
-                'data',
-                'opening',
-                'client_total_delivery_amount'
-            )
-        );
+    if ($deliveries->isEmpty()) {
+        abort(404, 'No delivery found for this client today.');
     }
 
+
+    /*
+    |--------------------------------------------------------------------------
+    | Main Delivery
+    |--------------------------------------------------------------------------
+    |
+    | Blade compatibility-এর জন্য প্রথম delivery
+    |
+    */
+
+    $delivery = $deliveries->first();
+    /*
+    |--------------------------------------------------------------------------
+    | Client
+    |--------------------------------------------------------------------------
+    */
+
+    $client = $delivery->client;
+
+
+    /*
+    |--------------------------------------------------------------------------
+    | Vendor / Company Info
+    |--------------------------------------------------------------------------
+    */
+
+    $vendor = $delivery->sales->vendor;
+    if ($vendor) {
+
+        $hotline = $vendor->phone;
+        $logo = $vendor->logo;
+        $title = $vendor->name;
+
+        $informations =
+            $vendor->address . '<br>' .
+            $vendor->phone . ', ' .
+            $vendor->email . ', ' .
+            $vendor->contact_person;
+
+    } else {
+
+        $logo = null;
+        $hotline = '01xxxxx-xxxxx';
+        $title = 'Company Name Goes Here.';
+
+        $informations = '
+            Company address will goes here <br>
+            Mobile: 0967XXXXXX,
+            Email: youremail@gmail.com,
+            www.website.com
+        ';
+    }
+
+
+    /*
+    |--------------------------------------------------------------------------
+    | আজকের Client-এর সব Delivery ID
+    |--------------------------------------------------------------------------
+    */
+
+    $deliveryIds = $deliveries->pluck('id');
+
+
+    /*
+    |--------------------------------------------------------------------------
+    | Current Date + Current Client Delivery Product List
+    |--------------------------------------------------------------------------
+    |
+    | আজকের সব delivery record
+    | Multiple invoice থাকতে পারবে
+    |
+    */
+
+    $lists = SalesDeliveryList::with([
+            'product',
+            'salesdelivery'
+        ])
+        ->whereIn('sales_delivery_id', $deliveryIds)
+        ->where('client_id', $clientid)
+        ->whereDate('delivery_date', $deliveryDate)
+        ->orderBy('id', 'asc')
+        ->get();
+
+
+    /*
+    |--------------------------------------------------------------------------
+    | যদি Delivery List না থাকে
+    |--------------------------------------------------------------------------
+    */
+
+    if ($lists->isEmpty()) {
+        abort(404, 'No delivery items found.');
+    }
+
+
+    /*
+    |--------------------------------------------------------------------------
+    | Current Date Total Delivery Amount
+    |--------------------------------------------------------------------------
+    */
+
+    $total_delivery_amount = $lists->sum(function ($item) {
+
+        return $item->delivery * $item->rate;
+
+    });
+
+
+    /*
+    |--------------------------------------------------------------------------
+    | Current Date Total Discount
+    |--------------------------------------------------------------------------
+    */
+
+    $total_discount_amount = $lists->sum('trade_discount');
+
+
+    /*
+    |--------------------------------------------------------------------------
+    | Current Date Total Quantity
+    |--------------------------------------------------------------------------
+    */
+
+    $total_qty = $lists->sum('qty');
+
+
+    /*
+    |--------------------------------------------------------------------------
+    | Current Date Total Delivered Quantity
+    |--------------------------------------------------------------------------
+    */
+
+    $total_delivery_qty = $lists->sum('delivery');
+
+
+    /*
+    |--------------------------------------------------------------------------
+    | Current Date Pending Quantity
+    |--------------------------------------------------------------------------
+    */
+
+    $total_pending_qty = $lists->sum(function ($item) {
+
+        return $item->qty - $item->delivery;
+
+    });
+
+
+    /*
+    |--------------------------------------------------------------------------
+    | Opening Balance
+    |--------------------------------------------------------------------------
+    */
+
+   /*
+    |--------------------------------------------------------------------------
+    | Opening & Closing Balance
+    |--------------------------------------------------------------------------
+    */
+
+    $openingBalance = 0;
+    $closingBalance = 0;
+
+
+    /*
+    |--------------------------------------------------------------------------
+    | Previous Sales
+    |--------------------------------------------------------------------------
+    | আজকের আগের সব delivery
+    */
+
+    $totalSalesBefore = SalesDelivery::where('client_id', $clientid)
+        ->whereDate('delivery_date', '<', $deliveryDate)
+        ->sum(DB::raw('total_delivery_amount - discount'));
+
+
+    /*
+    |--------------------------------------------------------------------------
+    | Previous Collection
+    |--------------------------------------------------------------------------
+    | আজকের আগের সব payment
+    */
+
+    $totalCollectionBefore = Collection::where('client_id', $clientid)
+        ->whereDate('payment_date', '<', $deliveryDate)
+        ->sum('amount');
+
+
+    /*
+    |--------------------------------------------------------------------------
+    | Opening Balance
+    |--------------------------------------------------------------------------
+    */
+
+    $openingBalance = $totalCollectionBefore - $totalSalesBefore;
+    
+
+    /*
+    |--------------------------------------------------------------------------
+    | Today's Sales
+    |--------------------------------------------------------------------------
+    | আজকের সব delivery
+    */
+
+    $todaySales = SalesDelivery::where('client_id', $clientid)
+        ->whereDate('delivery_date', $deliveryDate)
+        ->sum(DB::raw('total_delivery_amount - discount'));
+
+
+    /*
+    |--------------------------------------------------------------------------
+    | Today's Collection
+    |--------------------------------------------------------------------------
+    */
+
+    $todayCollection = Collection::where('client_id', $clientid)
+        ->whereDate('payment_date', $date)
+        ->sum('amount');
+
+
+    /*
+    |--------------------------------------------------------------------------
+    | Closing Balance
+    |--------------------------------------------------------------------------
+    */
+
+    $closingBalance = $openingBalance
+        + $todayCollection
+        - $todaySales;
+    // Law
+    // dd(
+    // "totalCollectionBefore",$totalCollectionBefore , 
+    // "totalSalesBefore",$totalSalesBefore, 
+    // "Opening = totalCollectionBefore - totalSalesBefore",$opening , 
+    // "todayCollection",$todayCollection,
+    // "todaySales",$todaySales,
+    // "closingBalance= opening + todayCollection - todaySales",$closingBalance);
+    /*
+    |--------------------------------------------------------------------------
+    | Main Data Object
+    |--------------------------------------------------------------------------
+    */
+
+    $data = $delivery;
+
+    /*
+    |--------------------------------------------------------------------------
+    | আজকের সব invoice/product list
+    |--------------------------------------------------------------------------
+    */
+
+    $data->list = $lists;
+
+    $data->client = $client;
+
+    $data->total_delivery_amount = $total_delivery_amount;
+
+    $data->total_qty = $total_qty;
+
+    $data->total_delivery_qty = $total_delivery_qty;
+
+    $data->total_pending_qty = $total_pending_qty;
+
+    $data->invoice = 'DELIVERY HISTORY';
+
+    $data->date = $deliveryDate;
+
+    $data->delivery_date = $deliveryDate;
+
+
+    /*
+    |--------------------------------------------------------------------------
+    | Blade Compatibility
+    |--------------------------------------------------------------------------
+    */
+
+    $client_total_delivery_amount = $total_delivery_amount- $total_discount_amount;
+
+    $report_title = 'Delivery';
+
+
+    return view(
+        'admin.sales-delivery.deliveryPrint',
+        compact(
+            'title',
+            'total_discount_amount',
+            'logo',
+            'informations',
+            'hotline',
+            'report_title',
+            'data',
+            'openingBalance',
+            'closingBalance',
+            'client_total_delivery_amount'
+        )
+    );
+}
     
      public function pendingDetails(string $clientid)
     {

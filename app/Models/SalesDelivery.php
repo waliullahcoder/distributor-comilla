@@ -26,7 +26,7 @@ class SalesDelivery extends Model
 
     public function sales()
     {
-        return $this->belongsTo(Sales::class, 'sales_id')->withTrashed();
+        return $this->belongsTo(Sales::class, 'sales_id');
     }
 
     public function salesdelivery()

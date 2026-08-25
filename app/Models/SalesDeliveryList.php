@@ -29,9 +29,8 @@ class SalesDeliveryList extends Model
     {
         return $this->belongsTo(
             SalesDelivery::class,
-            'sales_delivery_id',
-            'id'
-        )->withTrashed();
+            'sales_delivery_id'
+        );
     }
    
 }

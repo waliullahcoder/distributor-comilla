@@ -63,7 +63,7 @@ class ClientStatement
                 $balance -= $collection->amount;
                 $ld = $lineData;
                 $ld['invoice'] = $collection->payment_no;
-                $ld['particulars'] = $collection->collection_type == 'advance' ? 'Advance Collection' : 'Invoice Collection';
+                $ld['particulars'] = $collection->collection_type == 'advance' ? $collection->remarks : 'Invoice Collection';
                 $ld['sales'] = 0.00;
                 $ld['collection'] = $collection->amount;
                 $ld['return'] = 0.00;
