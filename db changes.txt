@@ -5,3 +5,5 @@ sales_delivery,
 sales_delivery_lists,
 lifting_receives,
 lifting_receives_products 
+
+DB->lifting_products->offer_qty

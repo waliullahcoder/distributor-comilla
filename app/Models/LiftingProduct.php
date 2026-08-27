@@ -9,7 +9,7 @@ use Illuminate\Database\Eloquent\Model;
 class LiftingProduct extends Model
 {
     use HasFactory;
-    protected $fillable = ['lifting_id', 'company_id', 'do_ratio', 'store_id', 'delivery', 'vendor_id', 'product_id', 'variant_id', 'product_type', 'lifting_price', 'expiry_date', 'qty', 'total_amount','delivery_amount', 'discount', 'net_amount', 'total_paid', 'return_qty', 'return_amount', 'status', 'created_by'];
+    protected $fillable = ['lifting_id', 'company_id', 'do_ratio', 'store_id', 'delivery', 'vendor_id', 'product_id', 'variant_id', 'product_type', 'lifting_price', 'expiry_date', 'qty', 'offer_qty','total_amount','delivery_amount', 'discount', 'net_amount', 'total_paid', 'return_qty', 'return_amount', 'status', 'created_by'];
 
     protected static function booted()
     {

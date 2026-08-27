@@ -692,19 +692,16 @@ class LiftingController extends Controller
                 'total_cost' => $request->total_cost ?? 0,
                 'discount' => $request->discount ?? 0,
                 'net_amount' => ($request->total_cost ?? 0) - ($request->discount ?? 0),
-                'total_paid' => $request->payment_type == 'cash' ? $request->net_payable : 0.00,
+                'total_paid' => $request->net_payable,
                 'created_by' => Auth::user()->id,
             ]);
 
             $log_data = '';
             foreach ($request->product_id as $key => $product_id) {
                 $product = Product::where('id', $product_id)->first();
-                $discount = ($request->discount / $request->total_cost) * $request->amount[$key];
-                if ($request->payment_type == 'cash') {
+                    $discount = $request->trade_discount[$key]??0;
                     $total_paid = $request->amount[$key] - $discount;
-                } else {
-                    $total_paid = 0;
-                }
+               
                 LiftingProduct::create([
                     'lifting_id' => $lifting->id,
                     'company_id' => Auth::user()->company_id ?? 1,
@@ -714,7 +711,9 @@ class LiftingController extends Controller
                     'total_amount' => $request->amount[$key],
                     'total_paid' => $total_paid,
                     'lifting_price' => $request->lifting_price[$key],
-                    'discount' => $discount,
+                    'offer_qty' => $request->offer_qty[$key],
+                    'discount' => $request->trade_discount[$key],
+                    'do_ratio'  =>  $request->do_ratio[$key],
                     'net_amount' => $request->amount[$key] - $discount,
                     'expiry_date' => !is_null(@$request->expiry_date[$key]) ? date('Y-m-d', strtotime(@$request->expiry_date[$key])) : null,
                     'qty' => $request->quantity[$key],
@@ -962,19 +961,17 @@ class LiftingController extends Controller
                 'total_cost' => $request->total_cost ?? 0,
                 'discount' => $request->discount ?? 0,
                 'net_amount' => ($request->total_cost ?? 0) - ($request->discount ?? 0),
-                'total_paid' => $request->payment_type == 'cash' ? $request->net_payable : 0.00,
+                'total_paid' => $request->net_payable,
                 'updated_by' => Auth::user()->id,
             ]);
 
             $log_data = '';
             foreach ($request->product_id as $key => $product_id) {
                 $product = Product::where('id', $product_id)->first();
-                $discount = ($request->discount / $request->total_cost) * $request->amount[$key];
-                if ($request->payment_type == 'cash') {
-                    $total_paid = $request->amount[$key] - $discount;
-                } else {
-                    $total_paid = 0;
-                }
+                $discount = $request->trade_discount[$key];
+             
+                $total_paid = $request->amount[$key] - $discount;
+               
                 LiftingProduct::create([
                     'lifting_id' => $lifting->id,
                     'company_id' => Auth::user()->company_id ?? 1,
@@ -984,13 +981,13 @@ class LiftingController extends Controller
                     'total_amount' => $request->amount[$key],
                     'total_paid' => $total_paid,
                     'lifting_price' => $request->lifting_price[$key],
-                    'discount' => $discount,
                     'net_amount' => $request->amount[$key] - $discount,
                     'expiry_date' => !is_null(@$request->expiry_date[$key]) ? date('Y-m-d', strtotime(@$request->expiry_date[$key])) : null,
                     'qty' => $request->quantity[$key],
-                    'delivery' => 0,
+                    'offer_qty' => $request->offer_qty[$key],
+                    'discount' => $request->trade_discount[$key],
+                    'do_ratio'  =>  $request->do_ratio[$key],
                     'delivery_amount' => 0,
-                    'do_ratio' => $product->do_ratio,
                     'created_by' => Auth::user()->id,
                 ]);
                 $log_data .= ' ' . $product->name . ' ' . $request->quantity[$key] . ' ' . $product->attribute->name . ' ';

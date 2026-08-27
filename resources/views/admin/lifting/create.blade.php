@@ -119,7 +119,7 @@
                                 style="display: none; max-width: 250px;">
                         </td>
                         <td colspan="2"></td>
-                        <td colspan="3">
+                        <td colspan="5">
                             <div class="input-group align-items-center mb-2">
                                 <span style="width: 100px;">Total</span>
                                 <input type="number" id="total_cost" name="total_cost" readonly class="form-control"
@@ -226,6 +226,7 @@
                                         <td class="px-3">
                                             <input type="hidden" class="product_id${product_id}" name="product_id[${existing_key}]" value="${product_id}">
                                             <span>${response.product.name}</span>
+                                             ${response.product.do_ratio > 0 ? `, Trade: ${response.product.do_ratio} CTN : 1 CTN` : ''}
                                         </td>
                                         <td class="px-3">${response.product.code}</td>
                                         <td><input style="width: 150px;" class="text-center rate" type="number" name="lifting_price[${existing_key}]" step="any" value="${response.product.price.lifting_price}" required></td>
@@ -233,7 +234,7 @@
 
                                          <td>
                                        <input type="hidden"
-                                            class="actual_do_ratio" name="do_ratio"
+                                            class="actual_do_ratio" name="do_ratio[]"
                                             value="${response.product.do_ratio ?? 0}">
 
                                         <input type="number"
