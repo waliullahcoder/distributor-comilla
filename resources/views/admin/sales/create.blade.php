@@ -74,7 +74,7 @@
                 @endforeach
             </select>
         </div>
-        <div class="col-lg-3 col-md-4 col-sm-6">
+        <div class="col-lg-6 col-md-4 col-sm-6">
             <label for="staff_id" class="form-label"><b>Staff <span class="text-danger">*</span></b></label>
             <select name="staff_id" id="staff_id" class="select form-select" data-placeholder="Select Staff" required>
                 <!-- <option value=""></option> -->

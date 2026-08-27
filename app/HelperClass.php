@@ -303,9 +303,9 @@ class HelperClass
             // $online_sales = DB::table('view_online_sales')->where('product_type', $product_type)->whereIn('status', ['On Route', 'Delivered', 'Collected'])->where('product_id', $product_id)->sum('qty');
 
             //Table
-             $liftings =DB::table('lifting_products')->where('product_type', $product_type)->where('product_id', $product_id)->sum('qty');
+             $liftings =DB::table('lifting_products')->where('product_type', $product_type)->where('product_id', $product_id)->sum('delivery');
              $lifting_returns = DB::table('lifting_return_lists')->where('product_type', $product_type)->where('store_id', $store_id)->where('product_id', $product_id)->sum('qty');
-            $sales = DB::table('sales_lists')->where('product_type', $product_type)->where('store_id', $store_id)->where('product_id', $product_id)->sum('qty');
+            $sales = DB::table('sales_lists')->where('product_type', $product_type)->where('store_id', $store_id)->where('product_id', $product_id)->sum('delivery');
             $sales_returns = DB::table('sales_return_lists')->where('product_type', $product_type)->where('store_id', $store_id)->where('product_id', $product_id)->sum('qty');
             $online_sales = DB::table('order_products')->where('product_id', $product_id)->sum('quantity');
             $transfers = DB::table('transfer_products')->where('product_type', $product_type)->where('product_id', $product_id)->sum('qty');
