@@ -17,7 +17,7 @@ class LiftingReceiveProduct extends Model
         return $this->belongsTo(Product::class, 'product_id')->with(['category', 'vendors', 'attribute'])->withTrashed();
     }
 
-   public function salesdelivery()
+   public function liftingreceives()
     {
         return $this->belongsTo(
             LiftingReceive::class,

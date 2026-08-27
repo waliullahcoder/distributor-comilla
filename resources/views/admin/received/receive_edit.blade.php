@@ -183,7 +183,7 @@
 
                                                     <input
                                                         type="hidden"
-                                                        name="delivery_id[]"
+                                                        name="receives_id[]"
                                                         value="{{ $receive->id }}">
 
 
@@ -262,7 +262,7 @@
                                                         step="any"
                                                         min="0"
                                                         max="{{ $pending }}"
-                                                        name="delivery_qty[]"
+                                                        name="receive_qty[]"
                                                         class="form-control delivery-qty"
                                                         value=""
                                                         data-pending="{{ $pending }}">

@@ -19,7 +19,7 @@ class LiftingReceive extends Model
 
 
 
-    public function sales()
+    public function lifting()
     {
         return $this->belongsTo(Lifting::class, 'lifting_id');
     }

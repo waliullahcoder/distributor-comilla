@@ -14,6 +14,8 @@ use App\Models\AccessLog;
 use App\Models\AdminSetting;
 use Illuminate\Http\Request;
 use App\Models\VendorPayment;
+use App\Models\LiftingReceive;
+use App\Models\LiftingReceiveProduct;
 use App\Models\LiftingProduct;
 use Barryvdh\DomPDF\Facade\Pdf;
 use App\Models\LiftingDocument;
@@ -294,321 +296,559 @@ class LiftingController extends Controller
     }
 
     public function receiveUpdate(Request $request, string $vendorid)
-    {
+{
+    DB::beginTransaction();
 
-    
-        DB::beginTransaction();
+    try {
 
-        try {
+        $receiveDate = now()->format('Y-m-d');
 
-            $total_delivery_amount = 0;
+        // প্রতিটি invoice-এর জন্য আলাদা SalesDelivery রাখবে
+        $liftingReceives = [];
 
-            foreach ($request->delivery_id ?? [] as $key => $deliveryId) {
+        foreach ($request->receives_id ?? [] as $key => $receivesId) {
 
-                $product = Product::find($request->product_id[$key] ?? null);
+            $receiveQty = (float) ($request->receive_qty[$key] ?? 0);
 
-                if (!$product) {
-                    continue;
-                }
-
-                $qty = (float) ($request->qty[$key] ?? 0);
-                $deliveryQty = (float) ($request->delivery_qty[$key]+$request->prev_receive[$key] ?? 0);
-                $rate = (float) ($product->price->lifting_price ?? 0);
-                /*
-                |--------------------------------------------------------------------------
-                | Delivery Validation
-                |--------------------------------------------------------------------------
-                */
-
-                if ($deliveryQty > $qty) {
-                    throw new \Exception(
-                        'Delivery quantity cannot be greater than quantity.'
-                    );
-                }
-
-                /*
-                |--------------------------------------------------------------------------
-                | Trade Discount
-                |--------------------------------------------------------------------------
-                */
-
-                $tradediscount = 0;
-                
-
-                if ($product->type == 1) {
-
-                    $doRatio = (int) $product->do_ratio;
-
-                    if ($doRatio > 0) {
-
-                        $freeqty = floor($qty / $doRatio);
-
-                        $offerqty = $qty - $freeqty;
-
-                        $offerSubtotal = $offerqty * $rate;
-
-                        $tradediscount = $freeqty * $rate;
-                    }
-                }
-
-                /*
-                |--------------------------------------------------------------------------
-                | Delivery Amount
-                |--------------------------------------------------------------------------
-                */
-
-                $deliveryAmount = $deliveryQty * $rate;
-
-                $total_delivery_amount += $deliveryAmount;
-
-
-                /*
-                |--------------------------------------------------------------------------
-                | Update Sales List
-                |--------------------------------------------------------------------------
-                */
-                DB::table('lifting_products')
-                    ->where('id', $deliveryId)
-                    ->where('vendor_id', $vendorid)
-                    ->update([
-                        'delivery'        => $deliveryQty,
-                        'delivery_amount' => $deliveryAmount,
-                        'discount'        => $tradediscount,
-                        'updated_at'      => now(),
-                    ]);
+            if ($receiveQty <= 0) {
+                continue;
             }
 
+            /*
+            |--------------------------------------------------------------------------
+            | Sales List
+            |--------------------------------------------------------------------------
+            */
+            $liftingProduct = LiftingProduct::where('id', $receivesId)
+                ->where('vendor_id', $vendorid)
+                ->first();
 
-            DB::commit();
+            if (!$liftingProduct) {
+                continue;
+            }
 
-            return redirect()
-                ->route('admin.received.list')
-                ->withSuccessMessage(
-                    'Vendor Receive updated successfully.'
-                );
+            /*
+            |--------------------------------------------------------------------------
+            | liftings / Invoice
+            |--------------------------------------------------------------------------
+            */
+            $liftings = Lifting::find($liftingProduct->lifting_id);
 
-        } catch (\Exception $e) {
-            DB::rollBack();
+            if (!$liftings) {
+                continue;
+            }
 
-            return redirect()
-                ->back()
-                ->withInput()
-                ->with('error', $e->getMessage());
+            /*
+            |--------------------------------------------------------------------------
+            | Product
+            |--------------------------------------------------------------------------
+            */
+            $productId = $request->product_id[$key]
+                ?? $liftingProduct->product_id;
+
+            $product = Product::find($productId);
+
+            if (!$product) {
+                continue;
+            }
+
+            /*
+            |--------------------------------------------------------------------------
+            | Rate & Qty
+            |--------------------------------------------------------------------------
+            */
+            $rate = (float) (
+                $request->rate[$key]
+                ?? $liftingProduct->rate
+                ?? 0
+            );
+
+            $qty = (float) (
+                $request->qty[$key]
+                ?? $liftingProduct->qty
+                ?? 0
+            );
+
+            $receiveAmount = $receiveQty * $rate;
+            /*
+            |--------------------------------------------------------------------------
+            | Trade Discount
+            |--------------------------------------------------------------------------
+            */
+            $totalQty = LiftingProduct::where('lifting_id', $liftings->id)
+                ->sum('qty');
+
+            $tradeDiscount = 0;
+
+            if ($totalQty > 0) {
+
+                $perDiscount =
+                    (float) $liftings->discount / $totalQty;
+
+                $tradeDiscount =
+                    $perDiscount * $receiveQty;
+            }
+            /*
+            |--------------------------------------------------------------------------
+            | LiftingReceive
+            |--------------------------------------------------------------------------
+            |
+            | একই invoice হলে একই LiftingReceive
+            | ভিন্ন invoice হলে নতুন LiftingReceive
+            |
+            */
+            if (!isset($liftingReceives[$liftings->id])) {
+
+                $liftingReceives[$liftings->id] = LiftingReceive::create([
+                    'vendor_id'              => $vendorid,
+                    'lifting_id'               => $liftings->id,
+                    'receive_date'          => $receiveDate,
+                    'total_amount'           => $liftings->total_cost,
+                    'total_receive_amount' => 0,
+                    'discount'               => 0,
+                    'total_paid'             => $liftings->total_paid,
+                    'status'                 => 1,
+                    'created_by'             => auth()->id(),
+                ]);
+            }
+
+            $lifting_receives = $liftingReceives[$liftings->id];
+
+            /*
+            |--------------------------------------------------------------------------
+            | Duplicate Product Check
+            |--------------------------------------------------------------------------
+            |
+            | একই invoice + একই product + একই variant
+            | এই delivery transaction-এর মধ্যে duplicate হবে না
+            |
+            */
+            $alreadyExists = LiftingReceiveProduct::where(
+                'lifting_receives_id',
+                $lifting_receives->id
+            )
+            ->where('product_id', $productId)
+            ->exists();
+
+            if ($alreadyExists) {
+                continue;
+            }
+
+            /*
+            |--------------------------------------------------------------------------
+            | Sales Delivery List
+            |--------------------------------------------------------------------------
+            */
+            LiftingReceiveProduct::create([
+                'lifting_receives_id' => $lifting_receives->id,
+                'vendor_id'         => $vendorid,
+                'product_id'        => $productId,
+                'receive_date'     => $receiveDate,
+                'do_ratio'          => $product->do_ratio ?? 0,
+                'offer_qty'         => 0,
+                'trade_discount'    => $tradeDiscount,
+                'rate'              => $rate,
+                'qty'               => $qty,
+                'receive'          => $receiveQty,
+                'receive_amount'   => $receiveAmount,
+            ]);
+
+            /*
+            |--------------------------------------------------------------------------
+            | sales_lists.delivery Update
+            |--------------------------------------------------------------------------
+            */
+            $liftingProduct->increment('delivery', $receiveQty);
         }
+
+        /*
+        |--------------------------------------------------------------------------
+        | Update Each Invoice
+        |--------------------------------------------------------------------------
+        */
+        foreach ($liftingReceives as $liftingId => $liftingReceive) {
+
+            /*
+            |--------------------------------------------------------------------------
+            | Sales Delivery Total
+            |--------------------------------------------------------------------------
+            */
+            $totalReceiveAmount = LiftingReceiveProduct::where(
+                'lifting_receives_id',
+                $liftingReceive->id
+            )->sum('receive_amount');
+
+            $totalDiscount = LiftingReceiveProduct::where(
+                'lifting_receives_id',
+                $liftingReceive->id
+            )->sum('trade_discount');
+
+            $liftingReceive->update([
+                'total_receive_amount' => $totalReceiveAmount,
+                'discount'              => $totalDiscount,
+            ]);
+
+            /*
+            |--------------------------------------------------------------------------
+            | Sales.delivery_amount
+            |--------------------------------------------------------------------------
+            */
+            $liftings = Lifting::find($liftingId);
+
+            if ($liftings) {
+
+                $liftingReceiveAmount = LiftingReceive::where(
+                    'lifting_id',
+                    $liftingId
+                )->sum('total_receive_amount');
+
+                // $liftings->update([
+                //     'receive_amount' => $liftingReceiveAmount,
+                // ]);
+            }
+        }
+
+        DB::commit();
+
+        return redirect()
+            ->route('admin.received.list')
+            ->withSuccessMessage('Receive saved successfully.');
+
+    } catch (\Exception $e) {
+         dd($e);
+        DB::rollBack();
+
+        return redirect()
+            ->back()
+            ->withInput()
+            ->with('error', $e->getMessage());
     }
+}
 
 
     public function receivePrint(string $vendorid)
-    {
-        /*
-        |--------------------------------------------------------------------------
-        | Vendor-এর সব Invoice / Sales
-        |--------------------------------------------------------------------------
-        */
+{
+    /*
+    |--------------------------------------------------------------------------
+    | Current Delivery Date
+    |--------------------------------------------------------------------------
+    */
 
-        $liftings = Lifting::where('vendor_id', $vendorid)
-            ->orderBy('id', 'desc')
-            ->get();
-
-        if ($liftings->isEmpty()) {
-            abort(404, 'No sales found for this vendor.');
-        }
+    $receiveDate = Carbon::today()->toDateString();
+    $date = Carbon::today()->toDateString();
 
 
-        /*
-        |--------------------------------------------------------------------------
-        | Vendor
-        |--------------------------------------------------------------------------
-        */
+    /*
+    |--------------------------------------------------------------------------
+    | Current Date + Client Wise All Deliveries
+    |--------------------------------------------------------------------------
+    |
+    | একই দিনে multiple delivery / invoice থাকতে পারে
+    |
+    */
 
-        $vendor = $liftings->first()->vendor;
+    $lifitngreceives = LiftingReceive::with([
+            'vendor',
+            'lifting'
+        ])
+        ->where('vendor_id', $vendorid)
+        ->whereDate('receive_date', $receiveDate)
+        ->orderBy('id', 'asc')
+        ->get();
 
-        if (!$vendor) {
-            abort(404, 'Vendor not found.');
-        }
 
+    /*
+    |--------------------------------------------------------------------------
+    | যদি আজকের কোন Delivery না থাকে
+    |--------------------------------------------------------------------------
+    */
 
-        /*
-        |--------------------------------------------------------------------------
-        | Vendor / Company Information
-        |--------------------------------------------------------------------------
-        */
+    if ($lifitngreceives->isEmpty()) {
+         return redirect()
+            ->route('admin.received.list')
+            ->withErrors('No Receive found for this Vendor today.');
+    }
 
-        $company = $vendor->name;
+    /*
+    |--------------------------------------------------------------------------
+    | Main Delivery
+    |--------------------------------------------------------------------------
+    |
+    | Blade compatibility-এর জন্য প্রথম delivery
+    |
+    */
+
+    $receive = $lifitngreceives->first();
+   
+
+    /*
+    |--------------------------------------------------------------------------
+    | Vendor / Company Info
+    |--------------------------------------------------------------------------
+    */
+
+    $vendor = $receive->vendor;
+    if ($vendor) {
+
         $hotline = $vendor->phone;
         $logo = $vendor->logo;
         $title = $vendor->name;
 
         $informations =
-            $vendor->address . '</br>' .
+            $vendor->address . '<br>' .
             $vendor->phone . ', ' .
             $vendor->email . ', ' .
             $vendor->contact_person;
 
+    } else {
 
-        /*
-        |--------------------------------------------------------------------------
-        | Vendor-এর সব Sales List
-        |--------------------------------------------------------------------------
-        */
+        $logo = null;
+        $hotline = '01xxxxx-xxxxx';
+        $title = 'Company Name Goes Here.';
 
-        $lists = LiftingProduct::with('product')
-            ->where('vendor_id', $vendorid)
-            ->where('delivery', '>', 0)
-            ->orderBy('id', 'asc')
-            ->get();
-
-
-        /*
-        |--------------------------------------------------------------------------
-        | Vendor-wise Delivery Amount
-        |--------------------------------------------------------------------------
-        */
-
-        $vendor_total_delivery_amount = LiftingProduct::where('vendor_id', $vendorid)
-            ->sum('delivery_amount');
-
-
-        /*
-        |--------------------------------------------------------------------------
-        | Vendor-wise Discount
-        |--------------------------------------------------------------------------
-        */
-
-        $total_discount_amount = LiftingProduct::where('vendor_id', $vendorid)
-            ->sum('discount');
-
-
-        /*
-        |--------------------------------------------------------------------------
-        | Vendor-এর Total Sales Amount
-        |--------------------------------------------------------------------------
-        */
-
-        $vendor_total_amount = LiftingProduct::where('vendor_id', $vendorid)
-            ->sum('delivery_amount');
-
-
-        /*
-        |--------------------------------------------------------------------------
-        | Total Paid Amount
-        |--------------------------------------------------------------------------
-        */
-
-        $total_paid_amount = VendorPayment::where('vendor_id', $vendorid)
-            ->sum('amount');
-
-
-        /*
-        |--------------------------------------------------------------------------
-        | Opening / Outstanding Balance
-        |--------------------------------------------------------------------------
-        */
-
-        $opening = $total_paid_amount;
-
-            // dd($vendor_total_delivery_amount
-            // , $total_discount_amount
-            // , $total_paid_amount);
-
-
-        /*
-        |--------------------------------------------------------------------------
-        | Latest / Main Data Object
-        |--------------------------------------------------------------------------
-        */
-
-        $data = $liftings->first();
-
-        $data->list = $lists;
-
-        $data->vendor = $vendor;
-
-
-        /*
-        |--------------------------------------------------------------------------
-        | Vendor-wise Total Delivery Amount
-        |--------------------------------------------------------------------------
-        */
-
-        $data->total_delivery_amount =
-            $vendor_total_delivery_amount;
-
-
-        /*
-        |--------------------------------------------------------------------------
-        | Vendor-wise Total Quantity
-        |--------------------------------------------------------------------------
-        */
-
-        $data->total_qty = LiftingProduct::where('vendor_id', $vendorid)
-            ->sum('qty');
-
-
-        /*
-        |--------------------------------------------------------------------------
-        | Vendor-wise Total Delivered Quantity
-        |--------------------------------------------------------------------------
-        */
-
-        $data->total_delivery_qty = LiftingProduct::where('vendor_id', $vendorid)
-            ->sum('delivery');
-
-
-        /*
-        |--------------------------------------------------------------------------
-        | Vendor-wise Pending Quantity
-        |--------------------------------------------------------------------------
-        */
-
-        $data->total_pending_qty =
-            $data->total_qty -
-            $data->total_delivery_qty;
-
-
-        /*
-        |--------------------------------------------------------------------------
-        | Report Information
-        |--------------------------------------------------------------------------
-        */
-
-        $data->invoice = 'VENDOR-WISE DELIVERY HISTORY';
-
-        $data->date = $liftings->max('lifting_date');
-
-        $data->updated_at = $liftings->max('updated_at');
-
-
-        /*
-        |--------------------------------------------------------------------------
-        | Report Title
-        |--------------------------------------------------------------------------
-        */
-
-        $report_title = 'Received';
-
-
-        /*
-        |--------------------------------------------------------------------------
-        | Return View
-        |--------------------------------------------------------------------------
-        */
-
-        return view(
-            'admin.received.receivePrint',
-            compact(
-                'title',
-                'total_discount_amount',
-                'logo',
-                'informations',
-                'hotline',
-                'report_title',
-                'data',
-                'opening',
-                'vendor_total_delivery_amount'
-            )
-        );
+        $informations = '
+            Company address will goes here <br>
+            Mobile: 0967XXXXXX,
+            Email: youremail@gmail.com,
+            www.website.com
+        ';
     }
+
+
+    /*
+    |--------------------------------------------------------------------------
+    | আজকের Client-এর সব Delivery ID
+    |--------------------------------------------------------------------------
+    */
+
+    $lifting_receives_id = $lifitngreceives->pluck('id');
+
+
+    /*
+    |--------------------------------------------------------------------------
+    | Current Date + Current Client Delivery Product List
+    |--------------------------------------------------------------------------
+    |
+    | আজকের সব delivery record
+    | Multiple invoice থাকতে পারবে
+    |
+    */
+
+    $lists = LiftingReceiveProduct::with([
+            'product',
+            'liftingreceives'
+        ])
+        ->whereIn('lifting_receives_id', $lifting_receives_id)
+        ->where('vendor_id', $vendorid)
+        ->whereDate('receive_date', $receiveDate)
+        ->orderBy('id', 'asc')
+        ->get();
+
+
+    /*
+    |--------------------------------------------------------------------------
+    | যদি Delivery List না থাকে
+    |--------------------------------------------------------------------------
+    */
+
+    if ($lists->isEmpty()) {
+        abort(404, 'No Receive items found.');
+    }
+
+
+    /*
+    |--------------------------------------------------------------------------
+    | Current Date Total Delivery Amount
+    |--------------------------------------------------------------------------
+    */
+
+    $total_receive_amount = $lists->sum(function ($item) {
+
+        return $item->receive * $item->rate;
+
+    });
+
+
+    /*
+    |--------------------------------------------------------------------------
+    | Current Date Total Discount
+    |--------------------------------------------------------------------------
+    */
+
+    $total_discount_amount = $lists->sum('trade_discount');
+
+
+    /*
+    |--------------------------------------------------------------------------
+    | Current Date Total Quantity
+    |--------------------------------------------------------------------------
+    */
+
+    $total_qty = $lists->sum('qty');
+
+
+    /*
+    |--------------------------------------------------------------------------
+    | Current Date Total Delivered Quantity
+    |--------------------------------------------------------------------------
+    */
+
+    $total_receive_qty = $lists->sum('receive');
+
+
+    /*
+    |--------------------------------------------------------------------------
+    | Current Date Pending Quantity
+    |--------------------------------------------------------------------------
+    */
+
+    $total_pending_qty = $lists->sum(function ($item) {
+
+        return $item->qty - $item->receive;
+
+    });
+
+
+    /*
+    |--------------------------------------------------------------------------
+    | Opening Balance
+    |--------------------------------------------------------------------------
+    */
+
+   /*
+    |--------------------------------------------------------------------------
+    | Opening & Closing Balance
+    |--------------------------------------------------------------------------
+    */
+
+    $openingBalance = 0;
+    $closingBalance = 0;
+
+
+    /*
+    |--------------------------------------------------------------------------
+    | Previous Sales
+    |--------------------------------------------------------------------------
+    | আজকের আগের সব delivery
+    */
+
+    $totalPurchaseBefore = LiftingReceive::where('vendor_id', $vendorid)
+        ->whereDate('receive_date', '<', $receiveDate)
+        ->sum(DB::raw('total_receive_amount - discount'));
+
+
+    /*
+    |--------------------------------------------------------------------------
+    | Previous Collection
+    |--------------------------------------------------------------------------
+    | আজকের আগের সব payment
+    */
+
+    $totalCollectionBefore = VendorPayment::where('vendor_id', $vendorid)
+        ->whereDate('payment_date', '<', $receiveDate)
+        ->sum('amount');
+
+
+    /*
+    |--------------------------------------------------------------------------
+    | Opening Balance
+    |--------------------------------------------------------------------------
+    */
+
+    $openingBalance = $totalCollectionBefore - $totalPurchaseBefore;
+    
+
+    /*
+    |--------------------------------------------------------------------------
+    | Today's Sales
+    |--------------------------------------------------------------------------
+    | আজকের সব delivery
+    */
+
+    $todayPurchases = LiftingReceive::where('vendor_id', $vendorid)
+        ->whereDate('receive_date', $receiveDate)
+        ->sum(DB::raw('total_receive_amount - discount'));
+
+
+    /*
+    |--------------------------------------------------------------------------
+    | Today's Collection
+    |--------------------------------------------------------------------------
+    */
+
+    $todayCollection = VendorPayment::where('vendor_id', $vendorid)
+        ->whereDate('payment_date', $date)
+        ->sum('amount');
+
+
+    /*
+    |--------------------------------------------------------------------------
+    | Closing Balance
+    |--------------------------------------------------------------------------
+    */
+
+    $closingBalance = $openingBalance
+        + $todayCollection
+        - $todayPurchases;
+    
+    /*
+    |--------------------------------------------------------------------------
+    | Main Data Object
+    |--------------------------------------------------------------------------
+    */
+
+    $data = $receive;
+
+    /*
+    |--------------------------------------------------------------------------
+    | আজকের সব invoice/product list
+    |--------------------------------------------------------------------------
+    */
+
+    $data->list = $lists;
+
+    $data->total_receive_amount = $total_receive_amount;
+
+    $data->total_qty = $total_qty;
+
+    $data->total_receive_qty = $total_receive_qty;
+
+    $data->total_pending_qty = $total_pending_qty;
+
+    $data->invoice = 'DELIVERY HISTORY';
+
+    $data->date = $receiveDate;
+
+    $data->receive_date = $receiveDate;
+
+
+    /*
+    |--------------------------------------------------------------------------
+    | Blade Compatibility
+    |--------------------------------------------------------------------------
+    */
+
+    $vendor_total_receive_amount = $total_receive_amount- $total_discount_amount;
+
+    $report_title = 'Receive';
+
+
+    return view(
+        'admin.received.receivePrint',
+        compact(
+            'title',
+            'total_discount_amount',
+            'logo',
+            'informations',
+            'hotline',
+            'report_title',
+            'data',
+            'openingBalance',
+            'closingBalance',
+            'vendor_total_receive_amount'
+        )
+    );
+}
 
     public function invoice()
     {

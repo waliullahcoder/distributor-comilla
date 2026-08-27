@@ -211,7 +211,9 @@ public function deliveryPrint(string $clientid)
     */
 
     if ($deliveries->isEmpty()) {
-        abort(404, 'No delivery found for this client today.');
+         return redirect()
+            ->route('admin.delivery.list')
+            ->withErrors('No delivery found for this client today.');
     }
 
 
