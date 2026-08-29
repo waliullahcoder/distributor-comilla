@@ -168,7 +168,7 @@ class ReportController extends Controller
                     'product_id',
                     'vendor_id',
                     'variant_id',
-                    DB::raw('SUM(qty) as total_lifting_qty'),
+                    DB::raw('SUM(delivery) as total_lifting_qty'),
                     DB::raw('SUM(total_amount - discount) as total_lifting_price')
                 );
                 $query->where('product_type', $product_type ?? 'Consumer');

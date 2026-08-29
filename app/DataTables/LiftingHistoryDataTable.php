@@ -227,8 +227,8 @@ class LiftingHistoryDataTable extends DataTable
                 'orderable' => false,
             ]),
             Column::make([
-                'data'      => 'qty',
-                'name'      => 'qty',
+                'data'      => 'delivery',
+                'name'      => 'delivery',
                 'title'     => 'Qty',
                 'class'     => 'text-nowrap text-end',
                 'footer'    => '<span id="total_qty"></span>',
@@ -242,8 +242,8 @@ class LiftingHistoryDataTable extends DataTable
                 'orderable' => false,
             ]),
             Column::make([
-                'data'      => 'amount',
-                'name'      => 'amount',
+                'data'      => 'delivery_amount',
+                'name'      => 'delivery_amount',
                 'title'     => 'Amount',
                 'class'     => 'text-nowrap text-end',
                 'footer'    => '<span id="total_amount"></span>',
