@@ -3,6 +3,7 @@
 namespace App\Services\Statement\Vendor;
 
 use App\Models\Lifting;
+use App\Models\LiftingReceive;
 use App\Models\LiftingReturn;
 use App\Models\Vendor;
 use App\Models\VendorPayment;
@@ -12,7 +13,7 @@ class Statement
 {
     public static function previousBalance($vendor_id, $fromDate)
     {
-        $liftingAmount = Lifting::where('vendor_id', $vendor_id)->where('lifting_date', '<', $fromDate)->sum('total_cost');
+        $liftingAmount = LiftingReceive::where('vendor_id', $vendor_id)->where('receive_date', '<', $fromDate)->sum('total_receive_amount');
         $paymentAmount = VendorPayment::where('vendor_id', $vendor_id)->where('payment_date', '<', $fromDate)->whereNot('type', 'adjust')->sum('amount');
         $returnAmount = LiftingReturn::where('vendor_id', $vendor_id)->where('date', '<', $fromDate)->sum('amount');
         return $liftingAmount - ($returnAmount + $paymentAmount);
@@ -27,8 +28,8 @@ class Statement
         foreach ($dateRange as $date) {
             $d = $date->format('Y-m-d');
 
-            $liftingAmount = Lifting::where('vendor_id', $vendor_id)
-                ->where('lifting_date',  $d)
+            $liftingAmount = LiftingReceive::where('vendor_id', $vendor_id)
+                ->where('receive_date',  $d)
                 ->get();
 
             foreach ($liftingAmount as $liftingAmount) {
@@ -36,11 +37,11 @@ class Statement
                 $row = [
                     'vendor_name' => $vendorInfo->name,
                     'date' => $date->format('d-m-Y'),
-                    'lifting' => $liftingAmount->total_cost - $liftingAmount->discount,
+                    'lifting' => $liftingAmount->total_receive_amount - $liftingAmount->discount,
                     'payment' => 0.00,
                     'return' => 0.00,
                     'balance' => $balance,
-                    'remarks' => $liftingAmount->payment_type . ' purchase on ' . $liftingAmount->lifting_no . ' which manual voucher no ' . $liftingAmount->voucher_no,
+                    'remarks' => $liftingAmount->lifting->payment_type . ' purchase on ' . $liftingAmount->lifting->lifting_no . ' which manual voucher no ' . $liftingAmount->lifting->voucher_no,
                 ];
                 array_push($statements, $row);
             }
