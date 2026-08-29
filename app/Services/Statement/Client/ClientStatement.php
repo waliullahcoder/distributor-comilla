@@ -4,6 +4,7 @@ namespace App\Services\Statement\Client;
 
 use App\Models\Collection;
 use App\Models\Sales;
+use App\Models\SalesDelivery;
 use App\Models\SalesReturn;
 use Carbon\CarbonPeriod;
 use Illuminate\Support\Facades\DB;
@@ -12,7 +13,7 @@ class ClientStatement
 {
     public static function previousBalance($client_id, $fromDate)
     {
-        $salesAmount = Sales::whereIn('client_id', $client_id)->where('date', '<', $fromDate)->sum(DB::raw('sales.total_amount - sales.discount'));
+        $salesAmount = SalesDelivery::whereIn('client_id', $client_id)->where('delivery_date', '<', $fromDate)->sum(DB::raw('sales_deliveries.total_delivery_amount - sales_deliveries.discount'));
         $paymentAmount = Collection::whereIn('client_id', $client_id)->where('payment_date', '<', $fromDate)->where('collection_type', '!=', 'adjust')->sum('amount');
         $returnAmount = SalesReturn::whereIn('client_id', $client_id)->where('date', '<', $fromDate)->sum('amount');
         return $salesAmount - ($returnAmount + $paymentAmount);
@@ -28,13 +29,13 @@ class ClientStatement
                 'date' => $date->format('Y-m-d'),
             ];
             $d = $date->format('Y-m-d');
-            $sales = Sales::whereIn('client_id', $client_id)->where('date', $d)->latest('id')->get();
+            $sales = SalesDelivery::whereIn('client_id', $client_id)->where('delivery_date', $d)->latest('id')->get();
             foreach ($sales as $sale) {
-                $balance += $sale->total_amount - $sale->discount;
+                $balance += $sale->total_delivery_amount - $sale->discount;
                 $ld = $lineData;
-                $ld['invoice'] = $sale->invoice;
+                $ld['invoice'] = $sale->sales->invoice;
                 $ld['particulars'] = 'Product Sale';
-                $ld['sales'] = $sale->total_amount - $sale->discount;
+                $ld['sales'] = $sale->total_delivery_amount - $sale->discount;
                 $ld['collection'] = 0.00;
                 $ld['return'] = 0.00;
                 $ld['balance'] = $balance;
