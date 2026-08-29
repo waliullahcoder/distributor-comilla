@@ -73,9 +73,17 @@
                     @endphp
                     @foreach ($data['product_prices'] as $row)
                         @php
-                            $lifting_amount = \DB::table('view_liftings')->where('product_id', $row->product_id)->sum('amount');
-                            $lifting_qty = \DB::table('view_liftings')->where('product_id', $row->product_id)->sum('qty');
-                            $avarage_lifting_price = $lifting_amount / $lifting_qty;
+                          $lifting_amount = \DB::table('view_liftings')
+                                ->where('product_id', $row->product_id)
+                                ->sum('amount');
+
+                            $lifting_qty = \DB::table('view_liftings')
+                                ->where('product_id', $row->product_id)
+                                ->sum('qty');
+
+                            $avarage_lifting_price = $lifting_qty > 0
+                                ? $lifting_amount / $lifting_qty
+                                : 0;
 
                             $liftings = $data['liftings']->where('product_id', $row->product_id)->sum('qty');
                             $lifting_returns = $data['lifting_returns']->where('product_id', $row->product_id)->sum('qty');
