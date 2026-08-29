@@ -1158,36 +1158,390 @@ class ReportController extends Controller
 
         $data = [];
         if ($request->has('filter')) {
-            $query = DB::table('view_liftings')->whereNotNull('date');
-            $company_id = Auth::user()->company_id;
-            if ($company_id) {
-                $query->where('company_id', $company_id);
-            }
-            if ($category_id) {
-                $query->whereIn('category_id', $category_id);
-            }
-            if ($product_id) {
-                $query->whereIn('product_id', $product_id);
-            }
+            // $query = DB::table('view_liftings')->whereNotNull('date');
+            // $company_id = Auth::user()->company_id;
+            // if ($company_id) {
+            //     $query->where('company_id', $company_id);
+            // }
+            // if ($category_id) {
+            //     $query->whereIn('category_id', $category_id);
+            // }
+            // if ($product_id) {
+            //     $query->whereIn('product_id', $product_id);
+            // }
 
-            if ($request->product_type == 'Consumer' || is_null($request->product_type)) {
-                $searched_products = $query
-                ->groupBy('product_id', 'name', 'code', 'attribute_name')
-                ->orderBy('name')
-                ->get([
-                    'product_id',
-                    'name',
-                    'code',
-                    'attribute_name'
-                ]);
-                $product_ids = $searched_products->pluck('product_id')->toArray();
-                $liftings = DB::table('view_liftings')->where('product_type', $request->product_type ?? 'Consumer')->whereIn('store_id', $store_id)->whereIn('product_id', $product_ids)->get();
-                $lifting_returns = DB::table('view_lifting_returns')->where('product_type', $request->product_type ?? 'Consumer')->whereIn('store_id', $store_id)->whereIn('product_id', $product_ids)->get();
-                $sales = DB::table('view_sales')->where('product_type', $request->product_type ?? 'Consumer')->whereIn('store_id', $store_id)->whereIn('product_id', $product_ids)->get();
-                $sales_returns = DB::table('view_sales_returns')->where('product_type', $request->product_type ?? 'Consumer')->whereIn('store_id', $store_id)->whereIn('product_id', $product_ids)->get();
-                $online_sales = DB::table('view_online_sales')->where('product_type', $request->product_type ?? 'Consumer')->whereIn('status', ['On Route', 'Delivered', 'Collected'])->whereIn('store_id', $store_id)->whereIn('product_id', $product_ids)->get();
-                $transfer_or_receives = DB::table('view_transfers')->where('product_type', $request->product_type ?? 'Consumer')->whereIn('product_id', $product_ids)->get();
-            }
+            // if ($request->product_type == 'Consumer' || is_null($request->product_type)) {
+            //     $searched_products = $query
+            //     ->groupBy('product_id', 'name', 'code', 'attribute_name')
+            //     ->orderBy('name')
+            //     ->get([
+            //         'product_id',
+            //         'name',
+            //         'code',
+            //         'attribute_name'
+            //     ]);
+            //     $product_ids = $searched_products->pluck('product_id')->toArray();
+            //     $liftings = DB::table('view_liftings')->where('product_type', $request->product_type ?? 'Consumer')->whereIn('store_id', $store_id)->whereIn('product_id', $product_ids)->get();
+            //     $lifting_returns = DB::table('view_lifting_returns')->where('product_type', $request->product_type ?? 'Consumer')->whereIn('store_id', $store_id)->whereIn('product_id', $product_ids)->get();
+            //     $sales = DB::table('view_sales')->where('product_type', $request->product_type ?? 'Consumer')->whereIn('store_id', $store_id)->whereIn('product_id', $product_ids)->get();
+            //     $sales_returns = DB::table('view_sales_returns')->where('product_type', $request->product_type ?? 'Consumer')->whereIn('store_id', $store_id)->whereIn('product_id', $product_ids)->get();
+            //     $online_sales = DB::table('view_online_sales')->where('product_type', $request->product_type ?? 'Consumer')->whereIn('status', ['On Route', 'Delivered', 'Collected'])->whereIn('store_id', $store_id)->whereIn('product_id', $product_ids)->get();
+            //     $transfer_or_receives = DB::table('view_transfers')->where('product_type', $request->product_type ?? 'Consumer')->whereIn('product_id', $product_ids)->get();
+
+
+            $query = DB::table('lifting_products')
+                    ->leftJoin('products', 'products.id', '=', 'lifting_products.product_id')
+                    ->leftJoin('product_prices', 'product_prices.product_id', '=', 'products.id')
+                    ->leftJoin('attributes', 'attributes.id', '=', 'products.attribute_id')
+                    ->leftJoin('categories', 'categories.id', '=', 'products.category_id')
+                    ->leftJoin('product_skus', 'product_skus.id', '=', 'lifting_products.variant_id')
+                    ->leftJoin('liftings', 'liftings.id', '=', 'lifting_products.lifting_id')
+                    ->whereNotNull('liftings.lifting_date')
+                    ->whereNull('liftings.deleted_at')
+                    ->whereNull('products.deleted_at')
+                    ->where('products.status', 1);
+
+                $company_id = Auth::user()->company_id;
+
+                if ($company_id) {
+                    $query->where('liftings.company_id', $company_id);
+                }
+
+                if ($category_id) {
+                    $query->whereIn('products.category_id', $category_id);
+                }
+
+                if ($product_id) {
+                    $query->whereIn('lifting_products.product_id', $product_id);
+                }
+
+                if ($request->product_type == 'Consumer' || is_null($request->product_type)) {
+
+                    $searched_products = $query
+                        ->where('liftings.product_type', $request->product_type ?? 'Consumer')
+                        ->groupBy(
+                            'lifting_products.product_id',
+                            'products.name',
+                            'products.code',
+                            'attributes.name'
+                        )
+                        ->orderBy('products.name')
+                        ->get([
+                            'lifting_products.product_id as product_id',
+                            'products.name as name',
+                            'products.code as code',
+                            'attributes.name as attribute_name'
+                        ]);
+
+                    $product_ids = $searched_products->pluck('product_id')->toArray();
+
+                    $liftings = DB::table('lifting_products')
+                                ->leftJoin('products', 'products.id', '=', 'lifting_products.product_id')
+                                ->leftJoin('product_prices', 'product_prices.product_id', '=', 'products.id')
+                                ->leftJoin('attributes', 'attributes.id', '=', 'products.attribute_id')
+                                ->leftJoin('categories', 'categories.id', '=', 'products.category_id')
+                                ->leftJoin('product_skus', 'product_skus.id', '=', 'lifting_products.variant_id')
+                                ->leftJoin('liftings', 'liftings.id', '=', 'lifting_products.lifting_id')
+                                ->whereNull('liftings.deleted_at')
+                                ->whereNull('products.deleted_at')
+                                ->where('products.status', 1)
+                                ->whereIn('liftings.store_id', $store_id)
+                                ->whereIn('lifting_products.product_id', $product_ids)
+                                ->get([
+                                    'liftings.company_id as company_id',
+                                    'liftings.store_id as store_id',
+                                    'liftings.lifting_date as date',
+                                    'liftings.product_type as product_type',
+
+                                    'lifting_products.product_id as product_id',
+
+                                    'products.name as name',
+                                    'products.code as code',
+                                    'products.shared_profit as shared_profit',
+
+                                    'lifting_products.variant_id as variant_id',
+
+                                    'attributes.name as attribute_name',
+
+                                    'categories.id as category_id',
+                                    'categories.name as category_name',
+
+                                    'product_prices.sale_price as sale_price',
+                                    'product_prices.online_price as online_price',
+
+                                    'product_skus.id as sku_id',
+                                    'product_skus.sku as sku',
+                                    'product_skus.price as variant_price',
+
+                                    'lifting_products.delivery as qty',
+
+                                    DB::raw('lifting_products.total_amount - lifting_products.discount as amount')
+                                ]);
+            $lifting_returns = DB::table('lifting_return_lists')
+                                ->leftJoin(
+                                    'products',
+                                    'products.id',
+                                    '=',
+                                    'lifting_return_lists.product_id'
+                                )
+                                ->leftJoin(
+                                    'product_skus',
+                                    'product_skus.id',
+                                    '=',
+                                    'lifting_return_lists.variant_id'
+                                )
+                                ->leftJoin(
+                                    'lifting_returns',
+                                    'lifting_returns.id',
+                                    '=',
+                                    'lifting_return_lists.lifting_return_id'
+                                )
+                                ->whereNull('lifting_returns.deleted_at')
+                                ->whereNull('products.deleted_at')
+                                ->where('products.status', 1)
+                                ->where('lifting_returns.product_type', $request->product_type ?? 'Consumer')
+                                ->whereIn('lifting_returns.store_id', $store_id)
+                                ->whereIn('lifting_return_lists.product_id', $product_ids)
+                                ->get([
+                                    'lifting_returns.company_id as company_id',
+                                    'lifting_returns.store_id as store_id',
+                                    'lifting_returns.date as date',
+                                    'lifting_returns.product_type as product_type',
+
+                                    'lifting_return_lists.product_id as product_id',
+
+                                    'product_skus.id as sku_id',
+                                    'product_skus.sku as sku',
+
+                                    'lifting_return_lists.qty as qty',
+
+                                    DB::raw(
+                                        'lifting_return_lists.amount - lifting_return_lists.lifting_discount as amount'
+                                    )
+                                ]);
+                    $sales = DB::table('sales_lists')
+                            ->leftJoin(
+                                'products',
+                                'products.id',
+                                '=',
+                                'sales_lists.product_id'
+                            )
+                            ->leftJoin(
+                                'categories',
+                                'categories.id',
+                                '=',
+                                'products.category_id'
+                            )
+                            ->leftJoin(
+                                'product_skus',
+                                'product_skus.id',
+                                '=',
+                                'sales_lists.variant_id'
+                            )
+                            ->leftJoin(
+                                'sales',
+                                'sales.id',
+                                '=',
+                                'sales_lists.sales_id'
+                            )
+                            ->whereNull('sales.deleted_at')
+                            ->whereNull('products.deleted_at')
+                            ->where('products.status', 1)
+                            ->whereIn('sales.store_id', $store_id)
+                            ->whereIn('sales_lists.product_id', $product_ids)
+                            ->get([
+                                'sales.company_id as company_id',
+                                'sales.store_id as store_id',
+                                'sales.date as date',
+                                'sales.product_type as product_type',
+                                'sales.sales_type as sales_type',
+
+                                'sales_lists.product_id as product_id',
+
+                                'products.name as name',
+
+                                'categories.id as category_id',
+                                'categories.name as category_name',
+
+                                'product_skus.id as sku_id',
+                                'product_skus.sku as sku',
+
+                                'sales_lists.delivery as qty',
+
+                                DB::raw(
+                                    'sales_lists.amount - sales_lists.discount as amount'
+                                ),
+
+                                'sales_lists.returned_qty as returned_qty',
+                                'sales_lists.returned_amount as returned_amount'
+                            ]);
+                            //dd($sales,$product_ids);
+                $sales_returns = DB::table('sales_return_lists')
+                                ->leftJoin(
+                                    'products',
+                                    'products.id',
+                                    '=',
+                                    'sales_return_lists.product_id'
+                                )
+                                ->leftJoin(
+                                    'categories',
+                                    'categories.id',
+                                    '=',
+                                    'products.category_id'
+                                )
+                                ->leftJoin(
+                                    'product_skus',
+                                    'product_skus.id',
+                                    '=',
+                                    'sales_return_lists.variant_id'
+                                )
+                                ->leftJoin(
+                                    'sales_returns',
+                                    'sales_returns.id',
+                                    '=',
+                                    'sales_return_lists.sales_return_id'
+                                )
+                                ->whereNull('sales_returns.deleted_at')
+                                ->where('sales_returns.approve', 1)
+                                ->where('sales_returns.reject', 0)
+                                ->whereNull('products.deleted_at')
+                                ->where('products.status', 1)
+                                ->where(
+                                    'sales_returns.product_type',
+                                    $request->product_type ?? 'Consumer'
+                                )
+                                ->whereIn('sales_returns.store_id', $store_id)
+                                ->whereIn('sales_return_lists.product_id', $product_ids)
+                                ->get([
+                                    'sales_returns.company_id as company_id',
+                                    'sales_returns.store_id as store_id',
+                                    'sales_returns.date as date',
+                                    'sales_returns.product_type as product_type',
+
+                                    'sales_return_lists.product_id as product_id',
+
+                                    'products.name as name',
+
+                                    'categories.id as category_id',
+                                    'categories.name as category_name',
+
+                                    'product_skus.id as sku_id',
+                                    'product_skus.sku as sku',
+
+                                    'sales_return_lists.qty as qty',
+
+                                    DB::raw(
+                                        'sales_return_lists.amount - sales_return_lists.sales_discount as amount'
+                                    )
+                                ]);
+
+                $online_sales = DB::table('order_products')
+                                ->leftJoin(
+                                    'products',
+                                    'products.id',
+                                    '=',
+                                    'order_products.product_id'
+                                )
+                                ->leftJoin(
+                                    'orders',
+                                    'orders.id',
+                                    '=',
+                                    'order_products.order_id'
+                                )
+                                ->whereNull('orders.deleted_at')
+                                ->whereNull('products.deleted_at')
+                                ->where('products.status', 1)
+                                ->where('products.product_type', $request->product_type ?? 'Consumer')
+                                ->whereIn('orders.status', [
+                                    'On Route',
+                                    'Delivered',
+                                    'Collected'
+                                ])
+                                ->whereIn('orders.store_id', $store_id)
+                                ->whereIn('order_products.product_id', $product_ids)
+                                ->get([
+                                    'order_products.order_id as order_id',
+                                    'order_products.id as order_product_id',
+
+                                    'products.company_id as company_id',
+                                    'products.product_type as product_type',
+
+                                    'order_products.product_id as product_id',
+                                    'order_products.variant_id as sku_id',
+
+                                    'products.category_id as category_id',
+                                    'products.name as name',
+                                    'products.code as code',
+
+                                    'order_products.quantity as qty',
+                                    'order_products.damaged_quantity as damaged_qty',
+
+                                    DB::raw(
+                                        'order_products.subtotal
+                                        - order_products.return_amount
+                                        - order_products.discount as amount'
+                                    ),
+
+                                    'orders.date as date',
+                                    'orders.collected_at as collected_at',
+                                    'orders.store_id as store_id',
+                                    'orders.collected as collected',
+                                    'orders.status as status',
+                                    'orders.is_stock as is_stock'
+                                ]);
+                $transfer_or_receives = DB::table('transfer_products')
+                                        ->leftJoin(
+                                            'products',
+                                            'products.id',
+                                            '=',
+                                            'transfer_products.product_id'
+                                        )
+                                        ->leftJoin(
+                                            'categories',
+                                            'categories.id',
+                                            '=',
+                                            'products.category_id'
+                                        )
+                                        ->leftJoin(
+                                            'product_skus',
+                                            'product_skus.id',
+                                            '=',
+                                            'transfer_products.variant_id'
+                                        )
+                                        ->leftJoin(
+                                            'transfers',
+                                            'transfers.id',
+                                            '=',
+                                            'transfer_products.transfer_id'
+                                        )
+                                        ->whereNull('transfers.deleted_at')
+                                        ->where('transfers.reject', 0)
+                                        ->where('transfer_products.is_back', 0)
+                                        ->whereNull('products.deleted_at')
+                                        ->where('products.status', 1)
+                                        ->where('transfers.product_type', $request->product_type ?? 'Consumer')
+                                        ->whereIn('transfer_products.product_id', $product_ids)
+                                        ->get([
+                                            'transfers.company_id as company_id',
+                                            'transfers.host_id as host_id',
+                                            'transfers.destination_id as destination_id',
+                                            'transfers.date as date',
+                                            'transfers.product_type as product_type',
+
+                                            'transfer_products.product_id as product_id',
+
+                                            'products.name as name',
+
+                                            'categories.id as category_id',
+                                            'categories.name as category_name',
+
+                                            'product_skus.id as sku_id',
+                                            'product_skus.sku as sku',
+
+                                            'transfer_products.qty as qty'
+                                        ]);
+            
+                }
             if ($request->product_type == 'Fashion') {
                 $searched_products = $query->whereNotNull('sku_id')->groupBy('sku_id')->orderBy('name', 'asc')->get(['product_id', 'sku_id', 'sku', 'name']);
                 $sku_ids = $searched_products->pluck('sku_id')->toArray();
@@ -1212,6 +1566,7 @@ class ReportController extends Controller
                 'online_sales' => $online_sales,
                 'transfer_or_receives' => $transfer_or_receives,
             ];
+          //  dd($data);
         }
 
         if (!is_null($request->print)) {
