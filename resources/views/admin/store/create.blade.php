@@ -28,7 +28,7 @@
                 value="{{ old('address') }}" placeholder="Address">
         </div>
         <div class="col-lg-4 col-sm-6">
-            <label for="remarks" class="form-label"><b>Remarks <span class="text-danger">*</span></b></label>
+            <label for="remarks" class="form-label"><b>Remarks </b></label>
             <input type="text" class="form-control" id="remarks" name="remarks" required
                 value="{{ old('remarks') }}" placeholder="Remarks">
         </div>

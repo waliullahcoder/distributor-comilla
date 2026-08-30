@@ -1828,113 +1828,55 @@ public function deliveryPrint(string $clientid)
     /**
      * Remove the specified resource from storage.
      */
-    public function destroy(string $id)
+   public function destroy(string $id)
     {
-        // Recovery Deleted Data
-        if (request()->has('recovery') && request('recovery') == 'true') {
-           // $data = Sales::onlyTrashed()->findOrFail($id);
-           $data = Sales::find($id);
-            if (!$data) {
-                return response()->json([
-                    'status' => 'error',
-                    'message' => 'Sales record not found or already deleted.'
-                ], 404);
-            }
-            $collection = Collection::onlyTrashed()->where('sales_id', $id)->first();
-            AccountTransactionAuto::onlyTrashed()->where('voucher_no', $data->invoice)->where('voucher_type', 'Sales')->restore();
-            if ($collection) {
-                AccountTransactionAuto::onlyTrashed()->where('voucher_no', $collection->payment_no)->where('voucher_type', 'Collection')->restore();
-                $collection->restore();
-            }
-            $data->restore();
-            return response()->json(['status' => 'success']);
-        }
+        try {
 
-        // Delete Multiple Items Permanent
-        if (request()->has('id') && request()->has('parmanent') && request('parmanent') == 'true') {
-            foreach (request('id') as $id) {
-                $data = Sales::onlyTrashed()->findOrFail($id);
-                $collection = Collection::onlyTrashed()->where('sales_id', $id)->first();
-                AccountTransactionAuto::onlyTrashed()->where('voucher_no', $data->invoice)->where('voucher_type', 'Sales')->forceDelete();
-                if ($collection) {
-                    AccountTransactionAuto::onlyTrashed()->where('voucher_no', $collection->payment_no)->where('voucher_type', 'Collection')->forceDelete();
-                    $collection->forceDelete();
-                }
-                $data->forceDelete();
-            }
-            return response()->json(['status' => 'success']);
-        }
+            DB::transaction(function () use ($id) {
 
-        // Delete Single Item Permanent
-        if (request()->has('parmanent') && request('parmanent') == 'true') {
-           $data = Sales::find($id);
-            if (!$data) {
-                return response()->json([
-                    'status' => 'error',
-                    'message' => 'Sales record not found or already deleted.'
-                ], 404);
-            }
-            $collection = Collection::onlyTrashed()->where('sales_id', $id)->first();
-            AccountTransactionAuto::onlyTrashed()->where('voucher_no', $data->invoice)->where('voucher_type', 'Sales')->forceDelete();
-            if ($collection) {
-                AccountTransactionAuto::onlyTrashed()->where('voucher_no', $collection->payment_no)->where('voucher_type', 'Collection')->forceDelete();
-                $collection->forceDelete();
-            }
-            $data->forceDelete();
-            return response()->json(['status' => 'success']);
-        }
+                $sales = Sales::find($id);
 
-        // Delete Multiple Items
-        if (request()->has('id')) {
-            foreach (request('id') as $id) {
-                $data = Sales::findOrFail($id);
-                AccountTransactionAuto::where('voucher_no', $data->invoice)->where('voucher_type', 'Sales')->update(['deleted_by' => Auth::user()->id]);
-                AccountTransactionAuto::where('voucher_no', $data->invoice)->where('voucher_type', 'Sales')->delete();
-
-                $collection = Collection::where('sales_id', $id)->first();
-                AccessLog::create([
-                    'date_time' => Carbon::now(),
-                    'page' => 'Sales',
-                    'action' => 'Delete',
-                    'description' => 'Sales delete invoice no ' . $data->invoice . (!is_null($collection) ? ' Collection delete ' . $collection->payment_no  : ''),
-                    'user_id' => Auth::user()->id,
-                ]);
-                if (!is_null($collection)) {
-                    AccountTransactionAuto::where('voucher_no', $collection->payment_no)->where('voucher_type', 'Collection')->update(['deleted_by' => Auth::user()->id]);
-                    AccountTransactionAuto::where('voucher_no', $collection->payment_no)->where('voucher_type', 'Collection')->delete();
-                    $collection->update(['deleted_by' => Auth::user()->id]);
-                    $collection->delete();
+                if (!$sales) {
+                    throw new \Exception('Sales not found.');
                 }
 
-                $data->update(['deleted_by' => Auth::user()->id]);
-                $data->delete();
-            }
-            return response()->json(['status' => 'success']);
+                // Get all deliveries
+                $salesDeliveries = SalesDelivery::where('sales_id', $id)->get();
+
+                // Delete Sales List
+                SalesList::where('sales_id', $id)->delete();
+
+                // Delete Delivery Lists & Deliveries
+                foreach ($salesDeliveries as $salesDelivery) {
+
+                    SalesDeliveryList::where(
+                        'sales_delivery_id',
+                        $salesDelivery->id
+                    )->delete();
+
+                    $salesDelivery->delete();
+                }
+
+                // Finally delete Sale
+                $sales->delete();
+            });
+
+            return response()->json([
+                'status' => 'success',
+                'message' => 'Sales deleted successfully.'
+            ]);
+
+        } catch (Throwable $e) {
+
+            return response()->json([
+                'status' => 'error',
+                'message' => 'Failed to delete sales.',
+                'error' => $e->getMessage()
+            ], 500);
         }
-
-        $data = Sales::findOrFail($id);
-        AccountTransactionAuto::where('voucher_no', $data->invoice)->where('voucher_type', 'Sales')->update(['deleted_by' => Auth::user()->id]);
-        AccountTransactionAuto::where('voucher_no', $data->invoice)->where('voucher_type', 'Sales')->delete();
-        $collection = Collection::where('sales_id', $id)->first();
-
-        AccessLog::create([
-            'date_time' => Carbon::now(),
-            'page' => 'Sales',
-            'action' => 'Delete',
-            'description' => 'Sales delete invoice no ' . $data->invoice . (!is_null($collection) ? ' Collection delete ' . $collection->payment_no  : ''),
-            'user_id' => Auth::user()->id,
-        ]);
-        if (!is_null($collection)) {
-            AccountTransactionAuto::where('voucher_no', $collection->payment_no)->where('voucher_type', 'Collection')->update(['deleted_by' => Auth::user()->id]);
-            AccountTransactionAuto::where('voucher_no', $collection->payment_no)->where('voucher_type', 'Collection')->delete();
-
-            $collection->update(['deleted_by' => Auth::user()->id]);
-            $collection->delete();
-        }
-
-        $data->update(['deleted_by' => Auth::user()->id]);
-        $data->delete();
-
-        return response()->json(['status' => 'success']);
     }
+
+
+
+    
 }

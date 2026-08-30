@@ -1350,110 +1350,53 @@ class LiftingController extends Controller
      */
     public function destroy(string $id)
     {
-        // Recovery Deleted Data
-        if (request()->has('recovery') && request('recovery') == 'true') {
-            $data = Lifting::onlyTrashed()->findOrFail($id);
-            foreach ($data->products as $item) {
-                LiftingReturnList::onlyTrashed()->where('lifting_product_id', $item->id)->restore();
-            }
-            AccountTransactionAuto::onlyTrashed()->where('voucher_no', $data->lifting_no)->where('voucher_type', 'Product Purchase')->restore();
+        try {
 
-            $payment = VendorPayment::onlyTrashed()->where('lifting_id', $id)->where('remarks', 'Cash Purchase')->first();
-            if ($payment) {
-                AccountTransactionAuto::onlyTrashed()->where('voucher_no', $payment->payment_no)->where('voucher_type', 'Vendor Payment')->restore();
-                $payment->restore();
-            }
-            $data->restore();
-            return response()->json(['status' => 'success']);
-        }
+            DB::transaction(function () use ($id) {
 
-        // Delete Multiple Items Permanent
-        if (request()->has('id') && request()->has('parmanent') && request('parmanent') == 'true') {
-            foreach (request('id') as $id) {
-                $data = Lifting::onlyTrashed()->findOrFail($id);
-                foreach ($data->products as $item) {
-                    LiftingReturnList::where('lifting_product_id', $item->id)->forceDelete();
+                $lifting = Lifting::find($id);
+
+                if (!$lifting) {
+                    throw new \Exception('Lifting not found.');
                 }
-                AccountTransactionAuto::onlyTrashed()->where('voucher_no', $data->lifting_no)->where('voucher_type', 'Product Purchase')->forceDelete();
-                $payment = VendorPayment::onlyTrashed()->where('lifting_id', $id)->where('remarks', 'Cash Purchase')->first();
-                if ($payment) {
-                    AccountTransactionAuto::onlyTrashed()->where('voucher_no', $payment->payment_no)->where('voucher_type', 'Vendor Payment')->forceDelete();
-                    $payment->forceDelete();
+
+                // Get all lifting receives
+                $liftingReceives = LiftingReceive::where('lifting_id', $id)->get();
+
+                // Delete Lifting Products
+                LiftingProduct::where('lifting_id', $id)->delete();
+
+                // Delete Receive Products & Receives
+                foreach ($liftingReceives as $liftingReceive) {
+
+                    LiftingReceiveProduct::where(
+                        'lifting_receives_id',
+                        $liftingReceive->id
+                    )->delete();
+
+                    $liftingReceive->delete();
                 }
-                $data->forceDelete();
-            }
-            return response()->json(['status' => 'success']);
+
+                // Finally delete Lifting
+                $lifting->delete();
+            });
+
+            return response()->json([
+                'status' => 'success',
+                'message' => 'Lifting deleted successfully.'
+            ]);
+
+        } catch (Throwable $e) {
+
+            return response()->json([
+                'status' => 'error',
+                'message' => 'Failed to delete lifting.',
+                'error' => $e->getMessage()
+            ], 500);
         }
-
-        // Delete Single Item Permanent
-        if (request()->has('parmanent') && request('parmanent') == 'true') {
-            $data = Lifting::onlyTrashed()->findOrFail($id);
-            foreach ($data->products as $item) {
-                LiftingReturnList::where('lifting_product_id', $item->id)->forceDelete();
-            }
-            AccountTransactionAuto::onlyTrashed()->where('voucher_no', $data->lifting_no)->where('voucher_type', 'Product Purchase')->forceDelete();
-            $payment = VendorPayment::onlyTrashed()->where('lifting_id', $id)->where('remarks', 'Cash Purchase')->first();
-            if ($payment) {
-                AccountTransactionAuto::onlyTrashed()->where('voucher_no', $payment->payment_no)->where('voucher_type', 'Vendor Payment')->forceDelete();
-                $payment->forceDelete();
-            }
-            $data->forceDelete();
-            return response()->json(['status' => 'success']);
-        }
-
-        // Delete Multiple Items
-        if (request()->has('id')) {
-            foreach (request('id') as $id) {
-                $data = Lifting::findOrFail($id);
-                foreach ($data->products as $item) {
-                    LiftingReturnList::where('lifting_product_id', $item->id)->delete();
-                }
-                AccountTransactionAuto::where('voucher_no', $data->lifting_no)->where('voucher_type', 'Product Purchase')->delete();
-                $payment = VendorPayment::where('lifting_id', $id)->where('remarks', 'Cash Purchase')->first();
-
-                AccessLog::create([
-                    'date_time' => Carbon::now(),
-                    'page' => 'Purchase',
-                    'action' => 'Delete',
-                    'description' => 'Purchase delete against purchase no ' . $data->lifting_no . (!is_null($payment) ? ' payment delete ' . $payment->payment_no  : ''),
-                    'user_id' => Auth::user()->id,
-                ]);
-
-                if ($payment) {
-                    AccountTransactionAuto::where('voucher_no', $payment->payment_no)->where('voucher_type', 'Vendor Payment')->delete();
-                    $payment->update(['deleted_by' => Auth::user()->id]);
-                    $payment->delete();
-                }
-                $data->update(['deleted_by' => Auth::user()->id]);
-                $data->delete();
-            }
-            return response()->json(['status' => 'success']);
-        }
-
-        // Delete Single Item
-        $data = Lifting::findOrFail($id);
-        foreach ($data->products as $item) {
-            LiftingReturnList::where('lifting_product_id', $item->id)->delete();
-        }
-        AccountTransactionAuto::where('voucher_no', $data->lifting_no)->where('voucher_type', 'Product Purchase')->delete();
-        $payment = VendorPayment::where('lifting_id', $id)->where('remarks', 'Cash Purchase')->first();
-
-        AccessLog::create([
-            'date_time' => Carbon::now(),
-            'page' => 'Purchase',
-            'action' => 'Delete',
-            'description' => 'Purchase delete against purchase no ' . $data->lifting_no . (!is_null($payment) ? ' payment delete ' . $payment->payment_no  : ''),
-            'user_id' => Auth::user()->id,
-        ]);
-
-        if ($payment) {
-            AccountTransactionAuto::where('voucher_no', $payment->payment_no)->where('voucher_type', 'Vendor Payment')->delete();
-            $payment->update(['deleted_by' => Auth::user()->id]);
-            $payment->delete();
-        }
-        $data->update(['deleted_by' => Auth::user()->id]);
-        $data->delete();
-
-        return response()->json(['status' => 'success']);
     }
+
+
+
+    
 }

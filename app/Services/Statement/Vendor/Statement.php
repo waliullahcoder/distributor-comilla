@@ -31,9 +31,10 @@ class Statement
             $liftingAmount = LiftingReceive::where('vendor_id', $vendor_id)
                 ->where('receive_date',  $d)
                 ->get();
+      
 
             foreach ($liftingAmount as $liftingAmount) {
-                $balance += $liftingAmount->total_cost - $liftingAmount->discount;
+                $balance += $liftingAmount->total_receive_amount - $liftingAmount->discount;
                 $row = [
                     'vendor_name' => $vendorInfo->name,
                     'date' => $date->format('d-m-Y'),
@@ -41,7 +42,17 @@ class Statement
                     'payment' => 0.00,
                     'return' => 0.00,
                     'balance' => $balance,
-                    'remarks' => $liftingAmount->lifting->payment_type . ' purchase on ' . $liftingAmount->lifting->lifting_no . ' which manual voucher no ' . $liftingAmount->lifting->voucher_no,
+                    'remarks' => ($liftingAmount->lifting
+                    ? $liftingAmount->lifting->payment_type
+                    : '')
+                    . ' purchase on '
+                    . ($liftingAmount->lifting
+                        ? $liftingAmount->lifting->lifting_no
+                        : '')
+                    . ' which manual voucher no '
+                    . ($liftingAmount->lifting
+                        ? $liftingAmount->lifting->voucher_no
+                        : ''),
                 ];
                 array_push($statements, $row);
             }
@@ -49,7 +60,6 @@ class Statement
             $paymentAmount = VendorPayment::where('vendor_id', $vendor_id)
                 ->where('payment_date', $d)->whereNot('type', 'adjust')
                 ->get();
-
             foreach ($paymentAmount as $paymentAmount) {
                 $balance -= $paymentAmount->amount;
                 $row = [

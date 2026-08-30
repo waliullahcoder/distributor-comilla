@@ -49,7 +49,7 @@
                 value="{{ $data->name }}" placeholder="Staff Name">
         </div>
         <div class="col-lg-4 col-sm-6">
-            <label for="short_name" class="form-label"><b>Display Name <span class="text-danger">*</span></b></label>
+            <label for="short_name" class="form-label"><b>Display Name </b></label>
             <input type="text" class="form-control" id="short_name" name="short_name" required
                 value="{{ $data->short_name }}" placeholder="Display Name">
         </div>
