@@ -237,7 +237,7 @@
                                             class="actual_do_ratio" name="do_ratio[]"
                                             value="${response.product.do_ratio ?? 0}">
 
-                                        <input type="number"
+                                        <input type="text"
                                             class="form-control do_ratio"
                                             readonly
                                              name="offer_qty[]" value="0">

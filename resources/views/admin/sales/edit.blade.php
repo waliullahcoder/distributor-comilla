@@ -192,7 +192,7 @@
                                     <input type="hidden"
                                             class="actual_do_ratio" name="do_ratio"
                                             value="{{ $item->do_ratio }}">
-                                    <input type="number" style="min-width: 60px;" class="form-control do_ratio"
+                                    <input type="text" style="min-width: 60px;" class="form-control do_ratio"
                                         placeholder="Offer Quantity" name="offer_qty[]" value="{{ $item->offer_qty }}" readonly>
                                 </td>
                                  <td>
@@ -255,7 +255,7 @@
                                     <b class="text-center" style="width: 40px;">TK.</b>
                                 </div>
                                 <div class="input-group align-items-center mb-2">
-                                    <input type="number" id="discount" name="discount" class="form-control"
+                                    <input type="text" id="discount" name="discount" class="form-control"
                                         placeholder="Discount" value="{{ $data->discount }}">
                                     <b class="text-center" style="width: 40px;">TK.</b>
                                 </div>
@@ -691,7 +691,7 @@
                                             class="actual_do_ratio" name="do_ratio"
                                             value="${response.product.do_ratio ?? 0}">
 
-                                        <input type="number"
+                                        <input type="text"
                                             class="form-control do_ratio"
                                             readonly
                                              name="offer_qty[]" value="0">
@@ -752,20 +752,27 @@
         var ratio_result = 0;
         var trade_discount = 0;
 
-        if (actual_do_ratio > 0) {
+       if (actual_do_ratio > 0) {
 
             // দশমিকের পরের অংশ বাদ
-            ratio_result = Math.floor(qty / actual_do_ratio);
+            ratio_result = qty / actual_do_ratio;
+
+             offer_qty = qty / actual_do_ratio;
+
+            // Trade Rate = Amount / (Qty + Offer Qty)
+            if ((qty + offer_qty) > 0) {
+                trade_rate = amount / (qty + offer_qty);
+            }
 
             // ভাগফল × Rate
-            trade_discount = ratio_result * rate;
+            trade_discount = offer_qty * trade_rate;
         }
 
         // DO Ratio column এ ভাগফল দেখাবে
-        row.find('.do_ratio').val(ratio_result);
+        row.find('.do_ratio').val(ratio_result.toFixed(2));
 
         // Trade Discount
-        row.find('.trade_discount').val(trade_discount);
+        row.find('.trade_discount').val(trade_discount.toFixed(2));
 
         total_trade_discount += trade_discount;
     });
@@ -774,12 +781,12 @@
     $('#total_amount').val(subtotal_amount);
 
     // Total Trade Discount
-    $('#discount').val(total_trade_discount);
+    $('#discount').val(total_trade_discount.toFixed(2));
 
     // Net Payable
     var net_payable = subtotal_amount - total_trade_discount;
 
-    $('#net_payable').val(net_payable);
+    $('#net_payable').val(net_payable.toFixed(2));
 }
 
             $(document).on('click', '.remove_item', function(e) {

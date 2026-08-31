@@ -1303,10 +1303,9 @@ public function deliveryPrint(string $clientid)
 
             $tradeDiscount = 0;
 
-            if ($totalQty > 0) {
+            if ($salesList->qty > 0) {
 
-                $perDiscount =
-                    (float) $sales->discount / $totalQty;
+                $perDiscount = $salesList->trade_discount / $salesList->qty;
 
                 $tradeDiscount =
                     $perDiscount * $deliveryQty;
