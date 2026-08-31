@@ -128,7 +128,7 @@
                             </div>
                             <div class="input-group align-items-center mb-2">
                                 <span style="width: 100px;">Discount</span>
-                                <input type="number" id="discount" name="discount" class="form-control"
+                                <input type="text" id="discount" name="discount" class="form-control"
                                     placeholder="Discount" value="0">
                                 <span class="text-center" style="width: 40px;">TK.</span>
                             </div>
@@ -244,7 +244,7 @@
                                     </td>
 
                                     <td>
-                                        <input type="number"
+                                        <input type="text"
                                             style="min-width: 60px;"
                                             class="form-control trade_discount"
                                             name="trade_discount[]"
@@ -386,7 +386,7 @@ $(document).on('click', '.remove_item', function () {
 });
 
 
-      function calculate() {
+ function calculate() {
 
     var subtotal_amount = 0;
     var total_trade_discount = 0;
@@ -411,37 +411,43 @@ $(document).on('click', '.remove_item', function () {
         subtotal_amount += amount;
 
         // DO Ratio calculation
-        var ratio_result = 0;
+        var offer_qty = 0;
         var trade_discount = 0;
+        var trade_rate = 0;
 
         if (actual_do_ratio > 0) {
 
             // ভাগফলের শুধু পূর্ণ সংখ্যা
-            ratio_result = Math.floor(qty / actual_do_ratio);
+            offer_qty = qty / actual_do_ratio;
 
-            // ভাগফল × Rate
-            trade_discount = ratio_result * rate;
+            // Trade Rate = Amount / (Qty + Offer Qty)
+            if ((qty + offer_qty) > 0) {
+                trade_rate = amount / (qty + offer_qty);
+            }
+
+            // Trade Discount = Trade Rate × Offer Qty
+            trade_discount = trade_rate * offer_qty;
         }
 
         // Offer Quantity
-        row.find('.do_ratio').val(ratio_result);
+        row.find('.do_ratio').val(offer_qty);
 
-        // Offer Amount
-        row.find('.trade_discount').val(trade_discount);
+        // Offer Amount / Trade Discount
+        row.find('.trade_discount').val(trade_discount.toFixed(2));
 
         total_trade_discount += trade_discount;
     });
 
-    // তোমার HTML এ id="total_cost"
-    $('#total_cost').val(subtotal_amount);
+    // Total Cost
+    $('#total_cost').val(subtotal_amount.toFixed(2));
 
     // Trade Discount
-    $('#discount').val(total_trade_discount);
+    $('#discount').val(total_trade_discount.toFixed(2));
 
     // Net Payable
     var net_payable = subtotal_amount - total_trade_discount;
 
-    $('#net_payable').val(net_payable);
+    $('#net_payable').val(net_payable.toFixed(2));
 }
     </script>
 @endpush

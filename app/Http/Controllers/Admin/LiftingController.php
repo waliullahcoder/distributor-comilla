@@ -368,7 +368,9 @@ class LiftingController extends Controller
                 ?? $liftingProduct->qty
                 ?? 0
             );
-
+            $offer_qty=$liftingProduct->offer_qty;
+            $trade_rate=$liftingProduct->total_amount/($offer_qty+$qty);
+           
             $receiveAmount = $receiveQty * $rate;
             /*
             |--------------------------------------------------------------------------
@@ -380,10 +382,9 @@ class LiftingController extends Controller
 
             $tradeDiscount = 0;
 
-            if ($totalQty > 0) {
+            if ($liftingProduct->qty > 0) {
 
-                $perDiscount =
-                    (float) $liftings->discount / $totalQty;
+                $perDiscount = $liftingProduct->discount / $liftingProduct->qty;
 
                 $tradeDiscount =
                     $perDiscount * $receiveQty;
@@ -446,7 +447,7 @@ class LiftingController extends Controller
                 'receive_date'     => $receiveDate,
                 'do_ratio'          => $product->do_ratio ?? 0,
                 'offer_qty'         => 0,
-                'trade_discount'    => $tradeDiscount,
+                'trade_discount'    => $product->do_ratio==0 ? 0 : $tradeDiscount,
                 'rate'              => $rate,
                 'qty'               => $qty,
                 'receive'          => $receiveQty,
@@ -854,7 +855,7 @@ class LiftingController extends Controller
     {
         $first = date('Y-m-01');
         $last = new Carbon('last day of this month');
-        $data = Lifting::withoutGlobalScope(CompanyScope::class)->withTrashed()->select(['lifting_no'])->whereDate('created_at', '>=', $first)->whereDate('created_at', '<=', $last)->latest('id')->first();
+        $data = Lifting::select(['lifting_no'])->whereDate('created_at', '>=', $first)->whereDate('created_at', '<=', $last)->latest('id')->first();
         if ($data) {
             $trim = str_replace("STL", '', $data->lifting_no);
             $dataPrefix = (int)$trim + 1;
@@ -1005,7 +1006,7 @@ class LiftingController extends Controller
             if ($request->payment_type == 'cash') {
                 $first = date('Y-m-01');
                 $last = new Carbon('last day of this month');
-                $pay_data = VendorPayment::withoutGlobalScope(CompanyScope::class)->withTrashed()->select(['payment_no'])->whereDate('created_at', '>=', $first)->whereDate('created_at', '<=', $last)->orderBy('id', 'desc')->first();
+                $pay_data = VendorPayment::select(['payment_no'])->whereDate('created_at', '>=', $first)->whereDate('created_at', '<=', $last)->orderBy('id', 'desc')->first();
                 if ($pay_data) {
                     $trim = str_replace("STP", '', $pay_data->payment_no);
                     $dataPrefix = (int)$trim + 1;
@@ -1276,7 +1277,7 @@ class LiftingController extends Controller
             if ($request->payment_type == 'cash') {
                 $first = date('Y-m-01');
                 $last = new Carbon('last day of this month');
-                $pay_data = VendorPayment::withoutGlobalScope(CompanyScope::class)->withTrashed()->select(['payment_no'])->whereDate('created_at', '>=', $first)->whereDate('created_at', '<=', $last)->orderBy('id', 'desc')->first();
+                $pay_data = VendorPayment::select(['payment_no'])->whereDate('created_at', '>=', $first)->whereDate('created_at', '<=', $last)->orderBy('id', 'desc')->first();
                 if ($pay_data) {
                     $trim = str_replace("STP", '', $pay_data->payment_no);
                     $dataPrefix = (int)$trim + 1;
@@ -1398,5 +1399,5 @@ class LiftingController extends Controller
 
 
 
-    
+
 }

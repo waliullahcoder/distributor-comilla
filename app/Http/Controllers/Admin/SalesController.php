@@ -625,7 +625,7 @@ public function deliveryPrint(string $clientid)
     {
         $first = date('Y-m-01');
         $last = new Carbon('last day of this month');
-        $order = Sales::withoutGlobalScope(CompanyScope::class)->withTrashed()->select(['invoice'])->where('created_at', '>=', $first)->where('created_at', '<=', $last)->latest('id')->first();
+        $order = Sales::select(['invoice'])->where('created_at', '>=', $first)->where('created_at', '<=', $last)->latest('id')->first();
         if ($order) {
             $trim = str_replace("STS", '', $order->invoice);
             $orderPrefix = (int)$trim + 1;
@@ -1373,7 +1373,7 @@ public function deliveryPrint(string $clientid)
                 'variant_id'        => $salesList->variant_id ?? null,
                 'do_ratio'          => $product->do_ratio ?? 0,
                 'offer_qty'         => 0,
-                'trade_discount'    => $tradeDiscount,
+                'trade_discount'    => $product->do_ratio==0 ? 0 : $tradeDiscount,
                 'rate'              => $rate,
                 'qty'               => $qty,
                 'delivery'          => $deliveryQty,
@@ -1878,5 +1878,5 @@ public function deliveryPrint(string $clientid)
 
 
 
-    
+
 }
