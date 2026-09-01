@@ -274,17 +274,17 @@
                                                 </td>
 
 
-                                                {{-- Delivery Date --}}
+                                                {{-- receive Date --}}
                                                 <td>
 
                                                     <input
                                                         type="date"
-                                                        name="delivery_date[]"
+                                                        name="receive_date[]"
                                                         class="form-control"
-                                                        value="{{ !empty($receive->updated_at)
-                                                            ? date('Y-m-d', strtotime($receive->updated_at))
+                                                        value="{{ !empty($receive->receive_date)
+                                                            ? date('Y-m-d', strtotime($receive->receive_date))
                                                             : date('Y-m-d') }}"
-                                                        readonly>
+                                                        >
 
                                                 </td>
 

@@ -1214,7 +1214,7 @@ public function deliveryPrint(string $clientid)
 
     try {
 
-        $deliveryDate = now()->format('Y-m-d');
+       
 
         // প্রতিটি invoice-এর জন্য আলাদা SalesDelivery রাখবে
         $salesDeliveries = [];
@@ -1281,7 +1281,7 @@ public function deliveryPrint(string $clientid)
                 ?? $salesList->qty
                 ?? 0
             );
-
+            $deliveryDate = $request->delivery_date[$key] ?? now()->format('Y-m-d');
             $deliveryAmount = $deliveryQty * $rate;
 
             /*

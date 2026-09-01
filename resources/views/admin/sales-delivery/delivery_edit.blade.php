@@ -146,8 +146,7 @@
                                                     type="date"
                                                     name="delivery_date[]"
                                                     class="form-control"
-                                                    value="{{ date('Y-m-d', strtotime($delivery->updated_at)) }}"
-                                                    readonly
+                                                    value="{{ date('Y-m-d') }}"
                                                 >
                                             </td>
 

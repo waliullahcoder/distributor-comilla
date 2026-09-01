@@ -90,7 +90,9 @@ use App\Models\DeliveryAgent;
 use App\Models\InvestorPayment;
 use App\Models\InvestorSattlement;
 use App\Models\ProfitDistributionList;
-
+use App\Models\SalesList;
+use App\Models\SalesDelivery;
+use App\Models\SalesDeliveryList;
 class ReportController extends Controller
 {
     public function productList(Request $request, ProductListDataTable $dataTable)
@@ -1042,42 +1044,99 @@ class ReportController extends Controller
         return view('admin.reports.client_statement.index', compact('title', 'filter_link', 'clients', 'data', 'client_id', 'start_date', 'end_date'));
     }
 
-    public function deliveryStatement(Request $request, DeliveryStatementDataTable $dataTable)
-    {
-        if ($request->has('print')) {
-            if (Auth::user()->company_id) {
-                $company = Company::find(Auth::user()->company_id);
-                $title = $company->name;
-                $informations = $company->address . '</br>' . $company->phone . ', ' . $company->email . ', ' . $company->website;
-            } else {
-                $title = 'Company Name Goes Here.';
-                $informations = 'Company address will goes here </br> Mobile: 0967XXXXXX, Email: youremail@gmail.com, www.website.com';
-            }
-            $date_range = explode('to', $request->date_range);
-            $start_date = isset($date_range[0]) ? date('Y-m-d', strtotime($date_range[0])) : date('Y-m-01');
-            $end_date = isset($date_range[1]) ? date('Y-m-d', strtotime($date_range[1])) : date('Y-m-t');
-            $client_id = $request->client_id;
-            $client = Client::find($client_id);
-            $header_title = 'Delivery Statement On ' . date('d-m-Y', strtotime($start_date)) . ' To ' . date('d-m-Y', strtotime($end_date));
+    public function deliveryStatement(Request $request)
+{
+    $title = "Delivery Statement";
+    $filter_link = Route('admin.delivery-statement.index');
 
-            $query = DeliveryList::with(['sales', 'delivery']);
-            if (!is_null($request->client_id)) {
-                $query->where('client_id', $client_id);
-            }
-            if (!is_null($start_date) && !is_null($end_date)) {
-                $query->whereHas('delivery', function ($squery) use ($start_date, $end_date) {
-                    $squery->where('date', '>=', $start_date)->where('date', '<=', $end_date);
-                });
-            }
-            $data = $query->latest('id')->get();
-            // return view('admin.reports.delivery_statement.print', compact('title', 'informations', 'header_title', 'data', 'client'));
-            $pdf = Pdf::loadView('admin.reports.delivery_statement.print', compact('title', 'informations', 'header_title', 'data', 'client'));
-            return $pdf->stream('delivery_statement_' . date('d_m_Y_H_i_s') . '.pdf');
+    $date_range = explode('to', $request->date_range);
+
+    $start_date = isset($date_range[0])
+        ? date('Y-m-d', strtotime(trim($date_range[0])))
+        : null;
+
+    $end_date = isset($date_range[1])
+        ? date('Y-m-d', strtotime(trim($date_range[1])))
+        : null;
+
+    $client_id = $request->client_id;
+
+    // Clients
+    $clients = DB::table('clients')
+        ->orderBy('name', 'asc')
+        ->get();
+
+    /*
+    |--------------------------------------------------------------------------
+    | Delivery Statement
+    |--------------------------------------------------------------------------
+    | Invoice wise + Product wise
+    */
+        $query = SalesDelivery::with([
+            'sales',
+            'salesdelivery'
+        ]);
+         
+        // Client filter
+        if (!empty($client_id)) {
+            $query->whereHas('salesdelivery', function ($q) use ($client_id) {
+                $q->where('client_id', $client_id);
+            });
         }
-        $title = 'Delivery Statement';
-        $clients = Client::where('status', 1)->orderBy('name', 'asc')->get();
-        return $dataTable->render('admin.reports.delivery_statement.index', compact('title', 'clients'));
-    }
+
+        // Date filter
+        if (!empty($start_date) && !empty($end_date)) {
+            $query->whereHas('salesdelivery', function ($q) use ($start_date, $end_date) {
+                $q->whereBetween(
+                    DB::raw('DATE(delivery_date)'),
+                    [$start_date, $end_date]
+                );
+            });
+        }
+
+        $invoices = $query
+            ->orderByDesc('created_at')
+            ->orderByDesc('id')
+            ->get();
+
+
+
+        // Grand Total Invoice Amount
+        $grand_total_invoice_amount = $invoices->sum('total_paid');
+
+
+        // Grand Total Delivery Amount
+        $grand_total_delivery_amount = $invoices->sum('total_delivery_amount');
+
+
+        // Grand Total Qty
+        $grand_total_qty = $invoices->sum(function ($item) {
+            return $item->salesdelivery->sum('qty');
+        });
+
+
+        // Grand Total Delivery Qty
+        $grand_total_delivery_qty = $invoices->sum(function ($item) {
+            return $item->salesdelivery->sum('delivery');
+        });
+
+    return view(
+        'admin.reports.delivery_statement.index',
+        compact(
+            'title',
+            'filter_link',
+            'clients',
+            'invoices',
+            'start_date',
+            'end_date',
+            'client_id',
+            'grand_total_invoice_amount',
+            'grand_total_delivery_amount',
+            'grand_total_qty',
+            'grand_total_delivery_qty'
+        )
+    );
+}
 
     public function transferLog(Request $request, TransferLogDataTable $dataTable)
     {

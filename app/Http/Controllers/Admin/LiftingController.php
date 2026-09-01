@@ -301,8 +301,6 @@ class LiftingController extends Controller
 
     try {
 
-        $receiveDate = now()->format('Y-m-d');
-
         // প্রতিটি invoice-এর জন্য আলাদা SalesDelivery রাখবে
         $liftingReceives = [];
 
@@ -368,6 +366,7 @@ class LiftingController extends Controller
                 ?? $liftingProduct->qty
                 ?? 0
             );
+            $receiveDate = $request->receive_date[$key] ?? now()->format('Y-m-d') ;
             $offer_qty=$liftingProduct->offer_qty;
             $trade_rate=$liftingProduct->total_amount/($offer_qty+$qty);
            
