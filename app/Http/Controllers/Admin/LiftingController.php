@@ -709,11 +709,7 @@ class LiftingController extends Controller
     });
 
 
-    /*
-    |--------------------------------------------------------------------------
-    | Opening Balance
-    |--------------------------------------------------------------------------
-    */
+    
 
    /*
     |--------------------------------------------------------------------------
@@ -749,13 +745,6 @@ class LiftingController extends Controller
         ->sum('amount');
 
 
-    /*
-    |--------------------------------------------------------------------------
-    | Opening Balance
-    |--------------------------------------------------------------------------
-    */
-
-    $openingBalance = $totalCollectionBefore - $totalPurchaseBefore;
     
 
     /*
@@ -780,6 +769,15 @@ class LiftingController extends Controller
         ->whereDate('payment_date', $date)
         ->sum('amount');
 
+        /*
+    |--------------------------------------------------------------------------
+    | Opening Balance
+    |--------------------------------------------------------------------------
+    */
+
+    $openingBalance = $totalCollectionBefore   + $todayCollection - $totalPurchaseBefore;
+    
+
 
     /*
     |--------------------------------------------------------------------------
@@ -787,9 +785,7 @@ class LiftingController extends Controller
     |--------------------------------------------------------------------------
     */
 
-    $closingBalance = $openingBalance
-        + $todayCollection
-        - $todayPurchases;
+    $closingBalance = $openingBalance - $todayPurchases;
     
     /*
     |--------------------------------------------------------------------------

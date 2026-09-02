@@ -379,7 +379,6 @@ public function deliveryPrint(string $clientid)
     $openingBalance = 0;
     $closingBalance = 0;
 
-
     /*
     |--------------------------------------------------------------------------
     | Previous Sales
@@ -404,13 +403,7 @@ public function deliveryPrint(string $clientid)
         ->sum('amount');
 
 
-    /*
-    |--------------------------------------------------------------------------
-    | Opening Balance
-    |--------------------------------------------------------------------------
-    */
-
-    $openingBalance = $totalCollectionBefore - $totalSalesBefore;
+    
     
 
     /*
@@ -438,13 +431,20 @@ public function deliveryPrint(string $clientid)
 
     /*
     |--------------------------------------------------------------------------
+    | Opening Balance
+    |--------------------------------------------------------------------------
+    */
+
+    $openingBalance = $totalCollectionBefore  + $todayCollection - $totalSalesBefore;
+
+
+    /*
+    |--------------------------------------------------------------------------
     | Closing Balance
     |--------------------------------------------------------------------------
     */
 
-    $closingBalance = $openingBalance
-        + $todayCollection
-        - $todaySales;
+    $closingBalance = $openingBalance - $todaySales;
     // Law
     // dd(
     // "totalCollectionBefore",$totalCollectionBefore , 
@@ -1098,7 +1098,7 @@ public function deliveryPrint(string $clientid)
             ->whereDate('payment_date', '<', $date)
             ->sum('amount');
 
-        $openingBalance = $totalCollectionBefore - $totalSalesBefore;
+       
 
 
         /*
@@ -1115,16 +1115,14 @@ public function deliveryPrint(string $clientid)
             ->whereDate('payment_date', $date)
             ->sum('amount');
 
-
+         $openingBalance = $totalCollectionBefore  + $todayCollection - $totalSalesBefore;
         /*
         |--------------------------------------------------------------------------
         | Closing Balance
         |--------------------------------------------------------------------------
         */
 
-        $closingBalance = $openingBalance
-            + $todayCollection
-            - $todaySales;
+        $closingBalance = $openingBalance - $todaySales;
 
 
         $report_title = 'Invoice';

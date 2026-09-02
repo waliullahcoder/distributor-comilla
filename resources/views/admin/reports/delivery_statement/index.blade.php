@@ -188,7 +188,7 @@ CONTENT
 
     {{-- Print --}}
 
-    <button type="button"
+    <!-- <button type="button"
             class="btn btn-primary btn-sm"
             id="printBtn">
 
@@ -196,7 +196,7 @@ CONTENT
 
         Print
 
-    </button>
+    </button> -->
 
 </div>
 

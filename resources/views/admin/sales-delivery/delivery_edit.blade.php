@@ -127,19 +127,25 @@
                                                 <span class="qty">{{ $delivery->qty-$delivery->delivery }}</span>
                                             </td>
 
-                                            <td>
-                                                <input
-                                                    type="hidden"
-                                                    name="prev_delivery[]"
-                                                    value="{{ $delivery->delivery }}">
-                                                <input
-                                                    type="number"
-                                                    step="any"
-                                                    min="0"
-                                                    name="delivery_qty[]"
-                                                    class="form-control delivery-qty"
-                                                    value="">
-                                            </td>
+<td>
+    <input
+        type="hidden"
+        name="prev_delivery[]"
+        value="{{ $delivery->delivery }}"
+    >
+
+    <input
+        type="number"
+        step="any"
+        min="0"
+        max="{{ $delivery->qty - $delivery->delivery }}"
+        name="delivery_qty[]"
+        class="form-control delivery-qty"
+        value=""
+    >
+
+    <small class="text-danger delivery-error" style="display:none;"></small>
+</td>
 
                                             <td>
                                                 <input
@@ -181,4 +187,101 @@
     </div>
 
 </form>
+
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+
+    // Delivery Qty input validation
+    document.querySelectorAll('.delivery-qty').forEach(function (input) {
+
+        input.addEventListener('input', function () {
+
+            let row = this.closest('tr');
+
+            let pendingElement = row.querySelector('.qty');
+            let errorElement = row.querySelector('.delivery-error');
+
+            let pendingQty = parseFloat(pendingElement.innerText.trim()) || 0;
+            let deliveryQty = parseFloat(this.value) || 0;
+
+            // Clear previous error
+            errorElement.style.display = 'none';
+            errorElement.innerText = '';
+            this.classList.remove('is-invalid');
+
+            // Delivery বেশি হলে
+            if (deliveryQty > pendingQty) {
+
+                this.classList.add('is-invalid');
+
+                errorElement.innerText =
+                    'Delivery Qty cannot be greater than Pending Qty (' +
+                    pendingQty +
+                    ')';
+
+                errorElement.style.display = 'block';
+
+            }
+
+        });
+
+    });
+
+
+    // Form submit validation
+    let form = document.querySelector('form');
+
+    form.addEventListener('submit', function (e) {
+
+        let hasError = false;
+
+        document.querySelectorAll('.delivery-qty').forEach(function (input) {
+
+            let row = input.closest('tr');
+
+            let pendingElement = row.querySelector('.qty');
+            let errorElement = row.querySelector('.delivery-error');
+
+            let pendingQty = parseFloat(pendingElement.innerText.trim()) || 0;
+            let deliveryQty = parseFloat(input.value) || 0;
+
+            if (deliveryQty > pendingQty) {
+
+                hasError = true;
+
+                input.classList.add('is-invalid');
+
+                errorElement.innerText =
+                    'Delivery Qty cannot be greater than Pending Qty (' +
+                    pendingQty +
+                    ')';
+
+                errorElement.style.display = 'block';
+            }
+
+        });
+
+        if (hasError) {
+
+            e.preventDefault();
+
+            alert('Delivery Qty cannot be greater than Pending Qty.');
+
+            let firstError = document.querySelector('.is-invalid');
+
+            if (firstError) {
+                firstError.focus();
+                firstError.scrollIntoView({
+                    behavior: 'smooth',
+                    block: 'center'
+                });
+            }
+
+            return false;
+        }
+
+    });
+
+});
+</script>
 @endsection
