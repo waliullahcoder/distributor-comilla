@@ -845,15 +845,38 @@ public function deliveryPrint(string $clientid)
 
                         $discount = ($request->discount / $request->total_amount) * $request->amount[$key];
                         $product = Product::find($product_id);
-                        $tradediscount= 0;
-                        if($product->type==1){
-                            $offerqty=0;
-                            $freeqty=0;
-                            $offer_subtotal=0;
-                            $freeqty= floor($request->qty[$key]/(int)$product->do_ratio) ;
-                            $offerqty = $request->qty[$key]-$freeqty;
-                            $offer_subtotal=$offerqty*$request->rate[$key];
-                           $tradediscount=$freeqty*$request->rate[$key];
+                       $tradediscount = 0;
+
+                        if ($product->type == 1) {
+
+                            $offerqty = 0;
+                            $freeqty = 0;
+                            $offer_subtotal = 0;
+
+                            $qty = (float) ($request->qty[$key] ?? 0);
+                            $rate = (float) ($request->rate[$key] ?? 0);
+                            $doRatio = (int) ($product->do_ratio ?? 0);
+
+                            if ($doRatio > 0) {
+
+                                $freeqty = $qty / $doRatio;
+
+                                $offerqty = $qty - $freeqty;
+
+                                $offer_subtotal = $offerqty * $rate;
+
+                                $tradediscount = $freeqty * $rate;
+
+                            } else {
+
+                                // DO Ratio 0/null হলে কোনো free quantity হবে না
+                                $freeqty = 0;
+                                $offerqty = $qty;
+
+                                $offer_subtotal = $offerqty * $rate;
+
+                                $tradediscount = 0;
+                            }
                         }
                        
                         SalesList::create([

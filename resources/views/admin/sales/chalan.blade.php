@@ -109,7 +109,7 @@
                                   $offerqty=0;
                                   $freeqty=0;
                                   $offer_subtotal=0;
-                                  $freeqty= floor(@$item->qty/(int)$item->product->do_ratio) ;
+                                  $freeqty= $item->product->do_ratio >0 ? @$item->qty/(int)$item->product->do_ratio : 0 ;
                                   $offerqty = $item->qty-$freeqty;
                                   $offer_subtotal=$offerqty*$item->rate;
                                   ?> 
