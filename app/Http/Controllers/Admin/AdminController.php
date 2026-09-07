@@ -262,11 +262,11 @@ class AdminController extends Controller
 
             if ($lifting_qty == 0) {
                 $customQuery = DB::table('view_liftings')->whereNotNull('date')->where('product_id', $row->id)->orderBy('date', 'desc')->first();
-                $lifting_amount = $customQuery->amount;
-                $lifting_qty = $customQuery->qty;
+                $lifting_amount = $customQuery->amount??0;
+                $lifting_qty = $customQuery->qty??0;
             }
 
-            $avarage_rate = $lifting_amount / $lifting_qty;
+            $avarage_rate = $lifting_amount>0 ? $lifting_amount / $lifting_qty : 0;
             $absolute_lifting = $sales_qty * $avarage_rate;
 
             $totalLiftingAmount += $absolute_lifting;
