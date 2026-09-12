@@ -65,7 +65,7 @@
                     type: "GET",
                     data: function(data) {
                         data.type = $('#filter').val();
-                        data.sales_date = $('#sales_date').val();
+                        data.date = $('#date').val();
                     }
                 },
                 columns: [{

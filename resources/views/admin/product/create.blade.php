@@ -78,7 +78,7 @@
                 <label class="form-label"><b>DO Ratio</b></label>
                 <select name="do_ratio" class="form-select">
                     <option value="0">0 CTN (No offer) </option>
-                    @for($i = 4; $i <= 20; $i++)
+                    @for($i = 4; $i <= 30; $i++)
                         <option value="{{ $i }}">
                             {{ $i }} CTN : 1 CTN
                         </option>
