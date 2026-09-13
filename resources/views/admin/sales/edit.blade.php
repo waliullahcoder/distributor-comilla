@@ -196,11 +196,11 @@
                                         placeholder="Offer Quantity" name="offer_qty[]" value="{{ $item->offer_qty }}" readonly>
                                 </td>
                                  <td>
-                                    <input type="number" style="min-width: 60px;" class="form-control trade_discount"
+                                    <input type="text" style="min-width: 60px;" class="form-control trade_discount"
                                         placeholder="Offer AMount" name="trade_discount[]" value="{{ $item->trade_discount }}" readonly>
                                 </td>
                                 <td>
-                                    <input type="number" style="min-width: 60px;" class="form-control amount"
+                                    <input type="text" style="min-width: 60px;" class="form-control amount"
                                         placeholder="Amount" name="amount[]" readonly value="{{ $item->amount }}">
                                 </td>
                                 <td class="text-center"><button type="button"
@@ -260,7 +260,7 @@
                                     <b class="text-center" style="width: 40px;">TK.</b>
                                 </div>
                                 <div class="input-group align-items-center">
-                                    <input type="number" id="net_payable" name="net_payable" class="form-control"
+                                    <input type="text" id="net_payable" name="net_payable" class="form-control"
                                         readonly placeholder="net Payable"
                                         value="{{ $data->total_amount - $data->discount }}">
                                     <b class="text-center" style="width: 40px;">TK.</b>
@@ -698,7 +698,7 @@
                                     </td>
 
                                     <td>
-                                        <input type="number"
+                                        <input type="text"
                                             style="min-width: 60px;"
                                             class="form-control trade_discount"
                                             name="trade_discount[]"
@@ -706,7 +706,7 @@
                                             readonly>
                                     </td>
 
-                                    <td><input type="number" style="min-width: 100px;" class="form-control amount" placeholder="Amount" name="amount[]" readonly value="${ response.amount }"></td>
+                                    <td><input type="text" style="min-width: 100px;" class="form-control amount" placeholder="Amount" name="amount[]" readonly value="${ response.amount }"></td>
                                     <td class="text-center"><button type="button" class="btn btn-xs btn-outline-danger remove_item mnw-auto px-2"><i class="far fa-trash-alt"></i></button></td>
                                 </tr>`;
                             $('#tbody').append(tr);

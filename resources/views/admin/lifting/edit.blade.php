@@ -185,19 +185,19 @@
                         <td colspan="5">
                             <div class="input-group align-items-center mb-2">
                                 <span style="width: 100px;">Total</span>
-                                <input type="number" id="total_cost" name="total_cost" readonly class="form-control"
+                                <input type="text" id="total_cost" name="total_cost" readonly class="form-control"
                                     placeholder="Total Cost" value="{{ $data->total_cost }}">
                                 <span class="text-center" style="width: 40px;">TK.</span>
                             </div>
                             <div class="input-group align-items-center mb-2">
                                 <span style="width: 100px;">Discount</span>
-                                <input type="number" id="discount" name="discount" class="form-control"
+                                <input type="text" id="discount" name="discount" class="form-control"
                                     placeholder="Discount" value="{{ $data->discount }}">
                                 <span class="text-center" style="width: 40px;">TK.</span>
                             </div>
                             <div class="input-group align-items-center">
                                 <span style="width: 100px;">Net Payable</span>
-                                <input type="number" id="net_payable" name="net_payable" readonly class="form-control"
+                                <input type="text" id="net_payable" name="net_payable" readonly class="form-control"
                                     placeholder="net Payable" value="{{ $data->total_cost - $data->discount }}">
                                 <span class="text-center" style="width: 40px;">TK.</span>
                             </div>
@@ -306,7 +306,7 @@
                                     </td>
 
                                     <td>
-                                        <input type="number"
+                                        <input type="text"
                                             style="min-width: 60px;"
                                             class="form-control trade_discount"
                                             name="trade_discount[]"
