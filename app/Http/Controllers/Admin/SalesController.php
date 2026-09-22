@@ -704,9 +704,9 @@ public function deliveryPrint(string $clientid)
             }
 
             $stock = $this->stock($product_id, $store_id);
-            // if (request('quantity') > $stock) {
-            //     return response()->json(['status' => 'error', 'data' => 'stock not available please decrease quantity!']);
-            // } else {
+            if (request('quantity') > $stock) {
+                return response()->json(['status' => 'error', 'data' => 'stock not available please decrease quantity!']);
+            } else {
                 if (!is_null(request('product_id'))) {
                     $product = Product::find(request('product_id'));
                     $client_price = ClientPrice::where('client_id', request('client_id'))->where('product_id', request('product_id'))->first();
@@ -724,7 +724,7 @@ public function deliveryPrint(string $clientid)
                 $unit = @$product->attribute->name;
                 $vendor = @$product->vendors->pluck('vendor.name');
                 return response()->json(['status' => 'success', 'product' => $product, 'unit' => $unit, 'quantity' => request('quantity'), 'stock' => $stock, 'pre_order_product' => $pre_order_product, 'order_product_id' => $order_product_id, 'price' => $price, 'amount' => $amount, 'vendor' => $vendor]);
-           // }
+           }
         }
 
         $products = Product::where('product_type', 'Consumer')->where('status', 1)->orderBy('name', 'asc')->get();
@@ -834,10 +834,10 @@ public function deliveryPrint(string $clientid)
                 foreach ($request->product_id as $key => $product_id) {
                     $stock = $this->stock($product_id, $store_id);
                     //stock validation removed
-                    // if ($request->qty[$key] > $stock) {
-                    //     $product = Product::find($product_id);
-                    //     throw new Exception('stock not available please decrease quantity for ' . $product->name);
-                    // } else {
+                    if ($request->qty[$key] > $stock) {
+                        $product = Product::find($product_id);
+                        throw new Exception('stock not available please decrease quantity for ' . $product->name);
+                    } else {
                         $order_product = OrderProduct::find($request->order_product_id[$key]);
                         if (!is_null($order_product)) {
                             $order_product->update(['delivered' => 1]);
@@ -845,8 +845,7 @@ public function deliveryPrint(string $clientid)
 
                         $discount = ($request->discount / $request->total_amount) * $request->amount[$key];
                         $product = Product::find($product_id);
-                       $tradediscount = 0;
-
+                        $tradediscount= 0;
                         if ($product->type == 1) {
 
                             $offerqty = 0;
@@ -896,7 +895,7 @@ public function deliveryPrint(string $clientid)
                             'discount' => $discount+$tradediscount,
                             'collection' => $request->sales_type == 'cash' ? ($request->amount[$key] - $discount) : 0.00,
                         ]);
-                    //}
+                    }
                 }
 
                 $client = Client::find($request->client_id);
@@ -1014,9 +1013,8 @@ public function deliveryPrint(string $clientid)
                 ]);
             });
         } catch (Throwable $caught) {
-            dd($caught);
             if ($caught) {
-                return redirect()->back()->withErrors('Something went wrong cought!');
+                return redirect()->back()->withErrors('Stock Not Available OR Something went wrong cought!');
             }
         }
         return redirect()->route('admin.sales.index')->withSuccessMessage('Created Successfully!');
@@ -1542,9 +1540,9 @@ public function deliveryPrint(string $clientid)
             $sales = SalesList::where('sales_id', $id)->where('store_id', $store_id)->where('product_id', $product_id)->first();
             //$stock = $this->stock($product_id, $store_id) + @$sales->qty;
             $stock = $this->stock($product_id, $store_id);
-            // if (request('quantity') > $stock) {
-            //     return response()->json(['status' => 'error', 'data' => 'stock not available please decrease quantity!']);
-            // } else {
+            if (request('quantity') > $stock) {
+                return response()->json(['status' => 'error', 'data' => 'stock not available please decrease quantity!']);
+            } else {
                 if (!is_null(request('product_id'))) {
                     $product = Product::find(request('product_id'));
                     $client_price = ClientPrice::where('client_id', request('client_id'))->where('product_id', request('product_id'))->first();
@@ -1563,7 +1561,7 @@ public function deliveryPrint(string $clientid)
                 $vendor = $product->vendors->pluck('vendor.name');
                
                 return response()->json(['status' => 'success', 'product' => $product, 'unit' => $unit, 'quantity' => request('quantity'), 'stock' => $stock, 'pre_order_product' => $pre_order_product, 'order_product_id' => $order_product_id, 'price' => $price, 'amount' => $amount, 'vendor' => $vendor]);
-           // }
+           }
         }
 
         $title = 'Update Sales';
@@ -1689,10 +1687,10 @@ public function deliveryPrint(string $clientid)
                     $old_sales = SalesList::where('sales_id', $id)->where('store_id', $store_id)->where('product_id', $product_id)->first();
                     $stock = $this->stock($product_id, $store_id) + @$old_sales->qty;
 
-                    // if ($request->qty[$key] > $stock) {
-                    //     $product = Product::find($product_id);
-                    //     throw new Exception('stock not available please decrease quantity for ' . $product->name);
-                    // } else {
+                    if ($request->qty[$key] > $stock) {
+                        $product = Product::find($product_id);
+                        throw new Exception('stock not available please decrease quantity for ' . $product->name);
+                    } else {
                         $order_product = OrderProduct::find($request->order_product_id[$key]);
                         if (!is_null($order_product)) {
                             $order_product->update(['delivered' => 1]);
@@ -1717,7 +1715,7 @@ public function deliveryPrint(string $clientid)
                             'discount' => $discount,
                             'collection' => $request->sales_type == 'cash' ? ($request->amount[$key] - $discount) : 0.00,
                         ]);
-                   // }
+                   }
                 }
 
                 $client = Client::find($request->client_id);
@@ -1836,11 +1834,10 @@ public function deliveryPrint(string $clientid)
                 ]);
             });
 
-            return redirect()->Route('admin.sales.index')->withSuccessMessage('Created Successfully!');
+            return redirect()->Route('admin.sales.index')->withSuccessMessage('Updated Successfully!');
         } catch (Throwable $caught) {
-            dd ($caught);
             if ($caught) {
-                return redirect()->back()->withErrors('Something is wrong!');
+                return redirect()->back()->withErrors('Stock not available OR Something is wrong!');
             }
         }
     }

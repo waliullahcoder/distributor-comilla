@@ -2,7 +2,6 @@
 
 namespace App\Services\Statement\Vendor;
 
-use App\Models\Lifting;
 use App\Models\LiftingReceive;
 use App\Models\LiftingReturn;
 use App\Models\Vendor;
@@ -13,89 +12,191 @@ class Statement
 {
     public static function previousBalance($vendor_id, $fromDate)
     {
-        $liftingAmount = LiftingReceive::where('vendor_id', $vendor_id)->where('receive_date', '<', $fromDate)->sum('total_receive_amount');
-        $paymentAmount = VendorPayment::where('vendor_id', $vendor_id)->where('payment_date', '<', $fromDate)->whereNot('type', 'adjust')->sum('amount');
-        $returnAmount = LiftingReturn::where('vendor_id', $vendor_id)->where('date', '<', $fromDate)->sum('amount');
+        $liftingAmount = LiftingReceive::where('vendor_id', $vendor_id)
+            ->where('receive_date', '<', $fromDate)
+            ->sum('total_receive_amount');
+
+        $paymentAmount = VendorPayment::where('vendor_id', $vendor_id)
+            ->where('payment_date', '<', $fromDate)
+            ->whereNot('type', 'adjust')
+            ->sum('amount');
+
+        $returnAmount = LiftingReturn::where('vendor_id', $vendor_id)
+            ->where('date', '<', $fromDate)
+            ->sum('amount');
+
         return $liftingAmount - ($returnAmount + $paymentAmount);
     }
 
-    public static function Statement($vendor_id, $fromDate, $toDate, $previousBalance)
-    {
+    public static function Statement(
+        $vendor_id,
+        $fromDate,
+        $toDate,
+        $previousBalance
+    ) {
         $balance = $previousBalance;
+
         $vendorInfo = Vendor::where('id', $vendor_id)->first();
+
         $dateRange = CarbonPeriod::create($fromDate, $toDate);
+
         $statements = [];
+
         foreach ($dateRange as $date) {
+
             $d = $date->format('Y-m-d');
 
-            $liftingAmount = LiftingReceive::where('vendor_id', $vendor_id)
-                ->where('receive_date',  $d)
-                ->get();
-      
+            /*
+            |--------------------------------------------------------------------------
+            | PURCHASE / LIFTING RECEIVE
+            |--------------------------------------------------------------------------
+            */
 
-            foreach ($liftingAmount as $liftingAmount) {
-                $balance += $liftingAmount->total_receive_amount - $liftingAmount->discount;
+            $liftingAmounts = LiftingReceive::where('vendor_id', $vendor_id)
+                ->where('receive_date', $d)
+                ->get();
+
+            foreach ($liftingAmounts as $liftingAmount) {
+
+                $purchaseAmount =
+                    $liftingAmount->total_receive_amount
+                    - $liftingAmount->discount;
+
+                $balance += $purchaseAmount;
+
                 $row = [
                     'vendor_name' => $vendorInfo->name,
+
                     'date' => $date->format('d-m-Y'),
-                    'lifting' => $liftingAmount->total_receive_amount - $liftingAmount->discount,
+
+                    'lifting' => $purchaseAmount,
+
                     'payment' => 0.00,
+
                     'return' => 0.00,
+
                     'balance' => $balance,
-                    'remarks' => ($liftingAmount->lifting
-                    ? $liftingAmount->lifting->payment_type
-                    : '')
-                    . ' purchase on '
-                    . ($liftingAmount->lifting
-                        ? $liftingAmount->lifting->lifting_no
-                        : '')
-                    . ' which manual voucher no '
-                    . ($liftingAmount->lifting
-                        ? $liftingAmount->lifting->voucher_no
-                        : ''),
+
+                    'remarks' =>
+                        ($liftingAmount->lifting
+                            ? $liftingAmount->lifting->payment_type
+                            : '')
+                        . ' purchase on '
+                        . ($liftingAmount->lifting
+                            ? $liftingAmount->lifting->lifting_no
+                            : '')
+                        . ' which manual voucher no '
+                        . ($liftingAmount->lifting
+                            ? $liftingAmount->lifting->voucher_no
+                            : ''),
+
+                    // DELETE INFORMATION
+                    'transaction_type' => 'purchase',
+                    'transaction_id' => $liftingAmount->id,
                 ];
-                array_push($statements, $row);
+
+                $statements[] = $row;
             }
 
-            $paymentAmount = VendorPayment::where('vendor_id', $vendor_id)
-                ->where('payment_date', $d)->whereNot('type', 'adjust')
+
+            /*
+            |--------------------------------------------------------------------------
+            | PAYMENT
+            |--------------------------------------------------------------------------
+            */
+
+            $paymentAmounts = VendorPayment::where('vendor_id', $vendor_id)
+                ->where('payment_date', $d)
+                ->whereNot('type', 'adjust')
                 ->get();
-            foreach ($paymentAmount as $paymentAmount) {
+
+            foreach ($paymentAmounts as $paymentAmount) {
+
                 $balance -= $paymentAmount->amount;
+
                 $row = [
                     'vendor_name' => $vendorInfo->name,
+
                     'date' => $date->format('d-m-Y'),
+
                     'lifting' => 0.00,
+
                     'payment' => $paymentAmount->amount,
+
                     'return' => 0.00,
+
                     'balance' => $balance,
-                    'remarks' => $paymentAmount->payment_type . ' Payment on ' . $paymentAmount->payment_no . ' which Payment Mode ' . $paymentAmount->type,
+
+                    'remarks' =>
+                        $paymentAmount->payment_type
+                        . ' Payment on '
+                        . $paymentAmount->payment_no
+                        . ' which Payment Mode '
+                        . $paymentAmount->type,
+
+                    // DELETE INFORMATION
+                    'transaction_type' => 'payment',
+                    'transaction_id' => $paymentAmount->id,
                 ];
-                array_push($statements, $row);
+
+                $statements[] = $row;
             }
 
-            $returnAmount = LiftingReturn::where('vendor_id', $vendor_id)
+
+            /*
+            |--------------------------------------------------------------------------
+            | RETURN
+            |--------------------------------------------------------------------------
+            */
+
+            $returnAmounts = LiftingReturn::where('vendor_id', $vendor_id)
                 ->where('date', $d)
                 ->get();
 
-            foreach ($returnAmount as $returnAmount) {
+            foreach ($returnAmounts as $returnAmount) {
+
                 $invoices = '';
+
                 foreach ($returnAmount->list as $key => $item) {
-                    $invoices .= $key > 0 ? ', ' : '' . $item->lifting_product->lifting->lifting_no;
+
+                    if ($item->lifting_product && $item->lifting_product->lifting) {
+
+                        $invoices .=
+                            ($key > 0 ? ', ' : '')
+                            . $item->lifting_product->lifting->lifting_no;
+                    }
                 }
+
                 $balance -= $returnAmount->amount;
+
                 $row = [
                     'vendor_name' => $vendorInfo->name,
+
                     'date' => $date->format('d-m-Y'),
+
                     'lifting' => 0.00,
+
                     'payment' => 0.00,
+
                     'return' => $returnAmount->amount,
+
                     'balance' => $balance,
-                    'remarks' => 'Return No ' . $returnAmount->return_no . ' against on invoice no ' . $invoices,
+
+                    'remarks' =>
+                        'Return No '
+                        . $returnAmount->return_no
+                        . ' against on invoice no '
+                        . $invoices,
+
+                    // DELETE INFORMATION
+                    'transaction_type' => 'return',
+                    'transaction_id' => $returnAmount->id,
                 ];
-                array_push($statements, $row);
+
+                $statements[] = $row;
             }
         }
+
         return $statements;
     }
 }

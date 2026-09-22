@@ -34,7 +34,7 @@
         <table id="dataTable" name="paymentRecordTable" class="table table-bordered table-sm">
             <thead>
                 <tr>
-                    <th colspan="7" class="text-end px-3">Previous Balance</th>
+                    <th colspan="8" class="text-end px-3">Previous Balance</th>
                     <th class="text-end px-3">
                         {{ isset($data['previousBalance']) ? number_format($data['previousBalance'], 2, '.', ',') : 0.0 }}
                     </th>
@@ -48,6 +48,7 @@
                     <th class="text-end" width="100px">Collection</th>
                     <th class="text-end" width="100px">Return</th>
                     <th class="text-end" width="100px">Balance</th>
+                    <th class="text-end" width="100px">Action</th>
                 </tr>
             </thead>
             @php
@@ -68,6 +69,19 @@
                             <td class="text-end px-3">{{ number_format($statement['collection'], 2, '.', ',') }}</td>
                             <td class="text-end px-3">{{ number_format($statement['return'], 2, '.', ',') }}</td>
                             <td class="text-end px-3">{{ number_format($statement['balance'], 2, '.', ',') }}</td>
+                            <td class="text-center px-3">
+                               @if(Auth::user()->email=='admin@gmail.com')
+                                <button type="button"
+                                        class="btn btn-sm btn-outline-danger delete-client-statement"
+                                        data-type="{{ $statement['transaction_type'] }}"
+                                        data-id="{{ $statement['transaction_id'] }}"
+                                        title="Delete">
+
+                                    <i class="fas fa-trash"></i>
+
+                                </button>
+                            @endif
+                            </td>
                         </tr>
                         @php
                             $balance = $statement['balance'];
@@ -87,6 +101,7 @@
                         <th colspan="1" class="text-end text-white px-3">{{ number_format($total_return, 2, '.', ',') }}
                         </th>
                         <th class="text-end text-white px-3">{{ number_format($balance, 2, '.', ',') }}</th>
+                        <th class="text-end text-white px-3"></th>
                     </tr>
                 </tfoot>
             @endif
@@ -130,4 +145,231 @@
             });
         });
     </script>
+
+    <script type="text/javascript">
+
+$(document).ready(function () {
+
+    /*
+    |--------------------------------------------------------------------------
+    | PRINT
+    |--------------------------------------------------------------------------
+    */
+
+    $(document).on('click', '.getPdf', function(e) {
+
+        e.preventDefault();
+
+        var client_id = $('#client_id').val();
+
+        var date_range = $('#date_range').val();
+
+        $('.client_id').val(client_id);
+
+        $('.date_range').val(date_range);
+
+
+        if (client_id == '') {
+
+            Swal.fire({
+
+                width: "22rem",
+
+                title: "Failed!",
+
+                text: "Please select a client!",
+
+                icon: "error",
+
+                showConfirmButton: false,
+
+                timer: 1500
+
+            });
+
+            return;
+        }
+
+
+        $('#print-form').submit();
+
+    });
+
+
+    /*
+    |--------------------------------------------------------------------------
+    | DELETE CLIENT STATEMENT
+    |--------------------------------------------------------------------------
+    */
+
+    $(document).on('click', '.delete-client-statement', function () {
+
+        var button = $(this);
+
+        var type = button.data('type');
+
+        var id = button.data('id');
+
+        var client_id = $('#client_id').val();
+
+        var date_range = $('#date_range').val();
+
+
+        var title = 'Delete Transaction?';
+
+
+        if (type === 'sales') {
+
+            title = 'Delete Sales?';
+
+        } else if (type === 'collection') {
+
+            title = 'Delete Collection?';
+
+        } else if (type === 'return') {
+
+            title = 'Delete Sales Return?';
+
+        }
+
+
+        Swal.fire({
+
+            title: title,
+
+            text: 'This transaction will be permanently deleted!',
+
+            icon: 'warning',
+
+            showCancelButton: true,
+
+            confirmButtonColor: '#d33',
+
+            cancelButtonColor: '#6c757d',
+
+            confirmButtonText: 'Yes, Delete',
+
+            cancelButtonText: 'Cancel'
+
+        }).then(function (result) {
+
+            if (!result.isConfirmed) {
+                return;
+            }
+
+
+            $.ajax({
+
+                url: "{{ url('admin/client-statement/delete') }}/"
+                    + type + "/" + id,
+
+                type: "DELETE",
+
+                data: {
+
+                    _token: "{{ csrf_token() }}"
+
+                },
+
+
+                beforeSend: function () {
+
+                    button.prop('disabled', true);
+
+                },
+
+
+                success: function (response) {
+
+                    if (response.status) {
+
+                        Swal.fire({
+
+                            icon: 'success',
+
+                            title: 'Deleted!',
+
+                            text: response.message,
+
+                            showConfirmButton: false,
+
+                            timer: 1200
+
+                        }).then(function () {
+
+                            /*
+                            |--------------------------------------------------------------------------
+                            | Reload same filter
+                            |--------------------------------------------------------------------------
+                            */
+
+                            var url =
+                                "{{ route('admin.client-statement.index') }}"
+                                + "?filter=1"
+                                + "&client_id=" + client_id
+                                + "&date_range="
+                                + encodeURIComponent(date_range);
+
+
+                            window.location.href = url;
+
+                        });
+
+                    } else {
+
+                        button.prop('disabled', false);
+
+                        Swal.fire({
+
+                            icon: 'error',
+
+                            title: 'Failed!',
+
+                            text: response.message
+
+                        });
+
+                    }
+
+                },
+
+
+                error: function (xhr) {
+
+                    button.prop('disabled', false);
+
+                    var message = 'Something went wrong!';
+
+
+                    if (
+                        xhr.responseJSON &&
+                        xhr.responseJSON.message
+                    ) {
+
+                        message = xhr.responseJSON.message;
+
+                    }
+
+
+                    Swal.fire({
+
+                        icon: 'error',
+
+                        title: 'Failed!',
+
+                        text: message
+
+                    });
+
+                }
+
+            });
+
+        });
+
+    });
+
+});
+
+</script>
 @endpush

@@ -436,6 +436,16 @@ Route::group(['as' => 'admin.', 'prefix' => 'admin', 'middleware' => ['admin_per
     Route::get('/lifting-return-history', [ReportController::class, 'liftingReturnHistory'])->name('lifting-return-history.index');
     Route::get('/vendor-payment-history', [ReportController::class, 'vendorPayment'])->name('vendor-payment-history.index');
     Route::get('/vendor-statement', [ReportController::class, 'vendorStatement'])->name('vendor-statement.index');
+    Route::delete(
+    'vendor-statement/delete/{type}/{id}',
+        [ReportController::class, 'vendorStatementDelete']
+    )->name('vendor-statement.delete');
+
+    Route::delete(
+        'client-statement/delete/{type}/{id}',
+        [ReportController::class, 'clientStatementDelete']
+    )->name('admin.client-statement.delete');
+
     Route::get('/client-list', [ReportController::class, 'clientList'])->name('client-list.index');
     Route::get('/sales-history', [ReportController::class, 'salesHistroy'])->name('sales-history.index');
     Route::get('/collection-history', [ReportController::class, 'collectionHistory'])->name('collection-history.index');

@@ -34,7 +34,7 @@
         <table id="dataTable" name="paymentRecordTable" class="table table-bordered table-sm">
             <thead>
                 <tr>
-                    <th colspan="6" style="text-align: right; font-weight: bold;">Previous Balance</th>
+                    <th colspan="7" style="text-align: right; font-weight: bold;">Previous Balance</th>
                     <th style="text-align: right;">{{ isset($data['previousBalance']) ? $data['previousBalance'] : 0 }}</th>
                 </tr>
                 <tr>
@@ -45,6 +45,7 @@
                     <th class="text-end" width="100px">Payment</th>
                     <th class="text-end" width="100px">Returns</th>
                     <th class="text-end" width="100px">Balance</th>
+                    <th class="text-end" width="100px">Action</th>
                 </tr>
             </thead>
 
@@ -59,6 +60,19 @@
                             <td class="text-end px-3">{{ $statement['payment'] }}</td>
                             <td class="text-end px-3">{{ $statement['return'] }}</td>
                             <td class="text-end px-3">{{ $statement['balance'] }}</td>
+                            <td class="text-center px-3">
+                                @if(Auth::user()->email=='admin@gmail.com')
+                                <button type="button"
+                                        class="btn btn-sm btn-outline-danger delete-statement"
+                                        data-type="{{ $statement['transaction_type'] }}"
+                                        data-id="{{ $statement['transaction_id'] }}"
+                                        title="Delete">
+
+                                    <i class="fas fa-trash"></i>
+
+                                </button>
+                                @endif
+                            </td>
                         </tr>
                     @endforeach
                 @endif
@@ -103,4 +117,239 @@
             });
         });
     </script>
+
+    <script type="text/javascript">
+
+    $(document).ready(function () {
+
+       if (!$.fn.DataTable.isDataTable('#dataTable')) {
+
+    $('#dataTable').DataTable({
+
+        order: [],
+
+        dom: 'Bfrtip',
+
+        buttons: [
+            'excelHtml5',
+            {
+                text: '<i class="fal fa-file-pdf"></i> Print',
+                className: 'getPdf',
+            }
+        ]
+
+    });
+
+}
+
+
+        /*
+        |--------------------------------------------------------------------------
+        | PRINT
+        |--------------------------------------------------------------------------
+        */
+
+        $(document).on('click', '.getPdf', function(e) {
+
+            e.preventDefault();
+
+            var vendor_id = $('#vendor_id').val();
+
+            var date_range = $('#date_range').val();
+
+            $('.vendor_id').val(vendor_id);
+
+            $('.date_range').val(date_range);
+
+
+            if (vendor_id == '') {
+
+                Swal.fire({
+
+                    width: "22rem",
+
+                    title: "Failed!",
+
+                    text: "Please select a Vendor!",
+
+                    icon: "error",
+
+                    showConfirmButton: false,
+
+                    timer: 1500
+
+                });
+
+                return;
+            }
+
+            $('#print-form').submit();
+
+        });
+
+
+        /*
+        |--------------------------------------------------------------------------
+        | DELETE STATEMENT
+        |--------------------------------------------------------------------------
+        */
+
+        $(document).on('click', '.delete-statement', function () {
+
+            var button = $(this);
+
+            var type = button.data('type');
+
+            var id = button.data('id');
+
+            var vendor_id = $('#vendor_id').val();
+
+            var date_range = $('#date_range').val();
+
+
+            var title = 'Delete Transaction?';
+
+            if (type === 'purchase') {
+                title = 'Delete Purchase?';
+            }
+
+            if (type === 'payment') {
+                title = 'Delete Payment?';
+            }
+
+            if (type === 'return') {
+                title = 'Delete Return?';
+            }
+
+
+            Swal.fire({
+
+                title: title,
+
+                text: "This transaction will be permanently deleted!",
+
+                icon: 'warning',
+
+                showCancelButton: true,
+
+                confirmButtonColor: '#d33',
+
+                cancelButtonColor: '#6c757d',
+
+                confirmButtonText: 'Yes, Delete',
+
+                cancelButtonText: 'Cancel',
+
+            }).then((result) => {
+
+                if (!result.isConfirmed) {
+                    return;
+                }
+
+
+                $.ajax({
+
+                    url: "{{ url('admin/vendor-statement/delete') }}/"
+                        + type + "/" + id,
+
+                    type: "DELETE",
+
+                    data: {
+
+                        _token: "{{ csrf_token() }}"
+
+                    },
+
+                    beforeSend: function () {
+
+                        button.prop('disabled', true);
+
+                    },
+
+                    success: function (response) {
+
+                        if (response.status) {
+
+                            Swal.fire({
+
+                                icon: 'success',
+
+                                title: 'Deleted!',
+
+                                text: response.message,
+
+                                showConfirmButton: false,
+
+                                timer: 1200
+
+                            }).then(function () {
+
+                                /*
+                                |--------------------------------------------------------------------------
+                                | Reload same vendor/date filter
+                                |--------------------------------------------------------------------------
+                                */
+
+                                var url =
+                                    "{{ route('admin.vendor-statement.index') }}"
+                                    + "?filter=1"
+                                    + "&vendor_id=" + vendor_id
+                                    + "&date_range=" + encodeURIComponent(date_range);
+
+                                window.location.href = url;
+
+                            });
+
+                        } else {
+
+                            button.prop('disabled', false);
+
+                            Swal.fire({
+
+                                icon: 'error',
+
+                                title: 'Failed!',
+
+                                text: response.message,
+
+                            });
+
+                        }
+
+                    },
+
+                    error: function (xhr) {
+
+                        button.prop('disabled', false);
+
+                        var message = 'Something went wrong!';
+
+                        if (
+                            xhr.responseJSON &&
+                            xhr.responseJSON.message
+                        ) {
+                            message = xhr.responseJSON.message;
+                        }
+
+                        Swal.fire({
+
+                            icon: 'error',
+
+                            title: 'Failed!',
+
+                            text: message,
+
+                        });
+
+                    }
+
+                });
+
+            });
+
+        });
+
+    });
+
+</script>
 @endpush

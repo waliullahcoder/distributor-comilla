@@ -266,7 +266,7 @@ class AdminController extends Controller
                 $lifting_qty = $customQuery->qty??0;
             }
 
-            $avarage_rate = $lifting_amount>0 ? $lifting_amount / $lifting_qty : 0;
+             $avarage_rate = $lifting_amount>0 ? $lifting_amount / $lifting_qty : 0;
             $absolute_lifting = $sales_qty * $avarage_rate;
 
             $totalLiftingAmount += $absolute_lifting;

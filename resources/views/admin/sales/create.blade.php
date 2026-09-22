@@ -640,7 +640,7 @@
     ${response.product.do_ratio > 0 ? `, Trade: ${response.product.do_ratio} CTN : 1 CTN` : ''}</td>
     
                                     <td><input type="number" style="min-width: 60px;" class="form-control rate" placeholder="Rate" name="rate[]" value="${ response.price }"></td>
-                                    <td><input type="number" style="min-width: 60px;" class="form-control qty" placeholder="Quantity" step="any" name="qty[]"  value="${ response.quantity }"></td>
+                                    <td><input type="number" style="min-width: 60px;" class="form-control qty" placeholder="Quantity" step="any" name="qty[]"  value="${ response.quantity }" readonly></td>
                                     <td><input type="text" style="min-width: 50px;" class="form-control unit" placeholder="Unit" readonly value="${ response.unit }"></td>
                                    
                                     <td>

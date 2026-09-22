@@ -3,6 +3,9 @@
 namespace App\Http\Controllers\Admin;
 
 use Carbon\Carbon;
+use App\Models\LiftingReceive;
+use App\Models\LiftingReturn;
+use App\Models\SalesReturn;
 use App\Models\Area;
 use App\Models\User;
 use App\Models\Group;
@@ -495,6 +498,90 @@ class ReportController extends Controller
         $vendors = Vendor::where('status', 1)->orderBy('name', 'asc')->get();
         $filter_link = Route('admin.vendor-statement.index');
         return view('admin.reports.vendor_statement.index', compact('title', 'filter_link', 'vendors', 'data', 'vendor_id', 'start_date', 'end_date'));
+    }
+
+    public function vendorStatementDelete(Request $request, $type, $id)
+    {
+        try {
+
+            switch ($type) {
+
+                /*
+                |--------------------------------------------------------------------------
+                | PURCHASE
+                |--------------------------------------------------------------------------
+                */
+                case 'purchase':
+
+                    $transaction = LiftingReceive::findOrFail($id);
+
+                    $transaction->delete();
+
+                    $message = 'Purchase deleted successfully.';
+
+                    break;
+
+
+                /*
+                |--------------------------------------------------------------------------
+                | PAYMENT
+                |--------------------------------------------------------------------------
+                */
+                case 'payment':
+
+                    $transaction = VendorPayment::findOrFail($id);
+
+                    // Adjust payment statement-এ আসে না
+                    if ($transaction->type === 'adjust') {
+                        return response()->json([
+                            'status' => false,
+                            'message' => 'Adjust payment cannot be deleted from statement.'
+                        ], 422);
+                    }
+
+                    $transaction->delete();
+
+                    $message = 'Payment deleted successfully.';
+
+                    break;
+
+
+                /*
+                |--------------------------------------------------------------------------
+                | RETURN
+                |--------------------------------------------------------------------------
+                */
+                case 'return':
+
+                    $transaction = LiftingReturn::findOrFail($id);
+
+                    $transaction->delete();
+
+                    $message = 'Return deleted successfully.';
+
+                    break;
+
+
+                default:
+
+                    return response()->json([
+                        'status' => false,
+                        'message' => 'Invalid transaction type.'
+                    ], 422);
+            }
+
+            return response()->json([
+                'status' => true,
+                'message' => $message
+            ]);
+
+        } catch (\Throwable $e) {
+
+            return response()->json([
+                'status' => false,
+                'message' => $e->getMessage()
+            ], 500);
+        }
     }
 
     public function clientList(Request $request, ClientListDataTable $dataTable)
@@ -1042,6 +1129,97 @@ class ReportController extends Controller
         $client_id = $request->client_id;
         $filter_link = Route('admin.client-statement.index');
         return view('admin.reports.client_statement.index', compact('title', 'filter_link', 'clients', 'data', 'client_id', 'start_date', 'end_date'));
+    }
+
+    public function clientStatementDelete(Request $request, $type, $id)
+    {
+        
+        try {
+
+            switch ($type) {
+
+                /*
+                |--------------------------------------------------------------------------
+                | SALES
+                |--------------------------------------------------------------------------
+                */
+
+                case 'sales':
+
+                    $transaction = SalesDelivery::findOrFail($id);
+
+                    $transaction->delete();
+
+                    $message = 'Sales deleted successfully.';
+
+                    break;
+
+
+                /*
+                |--------------------------------------------------------------------------
+                | COLLECTION
+                |--------------------------------------------------------------------------
+                */
+
+                case 'collection':
+
+                    $transaction = Collection::findOrFail($id);
+
+                    // Adjust collection statement-এ আসে না
+                    if ($transaction->collection_type === 'adjust') {
+
+                        return response()->json([
+                            'status' => false,
+                            'message' => 'Adjust collection cannot be deleted from statement.'
+                        ], 422);
+                    }
+
+                    $transaction->delete();
+
+                    $message = 'Collection deleted successfully.';
+
+                    break;
+
+
+                /*
+                |--------------------------------------------------------------------------
+                | RETURN
+                |--------------------------------------------------------------------------
+                */
+
+                case 'return':
+
+                    $transaction = SalesReturn::findOrFail($id);
+
+                    $transaction->delete();
+
+                    $message = 'Sales return deleted successfully.';
+
+                    break;
+
+
+                default:
+
+                    return response()->json([
+                        'status' => false,
+                        'message' => 'Invalid transaction type.'
+                    ], 422);
+            }
+
+
+            return response()->json([
+                'status' => true,
+                'message' => $message
+            ]);
+
+
+        } catch (\Throwable $e) {
+
+            return response()->json([
+                'status' => false,
+                'message' => $e->getMessage()
+            ], 500);
+        }
     }
 
     public function deliveryStatement(Request $request)
